@@ -30,6 +30,9 @@
 
   David Olofson <david@olofson.net> 2016:
 	* Simplified colorkey handling code.
+
+  David Olofson <david@olofson.net> 2017:
+	* Renamed symbols to avoid conflicts with SDL2_image.
 */
 
 /**
@@ -44,7 +47,7 @@
 #include <png.h>
 #include "IMG_savepng.h"
 
-int IMG_SavePNG(const char *file, SDL_Surface *surf, int flags)
+int EEL_SavePNG(const char *file, SDL_Surface *surf, int flags)
 {
 	int ret;
 	SDL_RWops *fp = SDL_RWFromFile(file, "wb");
@@ -61,7 +64,7 @@ static void png_write_data(png_structp png_ptr,png_bytep data, png_size_t length
 	SDL_RWwrite(rp, data, 1, length);
 }
 
-int IMG_SavePNG_RW(SDL_RWops *src, SDL_Surface *surf, int flags)
+int EEL_SavePNG_RW(SDL_RWops *src, SDL_Surface *surf, int flags)
 {
 	png_structp png_ptr;
 	png_infop info_ptr;

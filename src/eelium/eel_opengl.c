@@ -2,7 +2,7 @@
 ---------------------------------------------------------------------------
 	eel_opengl.c - EEL OpenGL Binding
 ---------------------------------------------------------------------------
- * Copyright 2010-2012, 2014 David Olofson
+ * Copyright 2010-2012, 2014, 2017 David Olofson
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from the
@@ -168,7 +168,7 @@ static struct
 
 	/* 3.0+ mipmap generation */
 	{"glGenerateMipmap", (void *)&eelgl_md._GenerateMipmap },
-	
+
 	{NULL, NULL }
 };
 
@@ -369,7 +369,8 @@ static EEL_xno gl_perspective(EEL_vm *vm)
 
 static EEL_xno gl_swapbuffers(EEL_vm *vm)
 {
-	SDL_GL_SwapBuffers();
+	EEL_value *args = vm->heap + vm->argv;
+	SDL_GL_SwapWindow(o2ESDL_window(args->objref.v)->window);
 	return 0;
 }
 
@@ -379,6 +380,7 @@ static EEL_xno gl_uploadtexture(EEL_vm *vm)
 	EEL_value *args = vm->heap + vm->argv;
 	GLuint tex;
 	int flags = 0;
+	Uint32 ck;
 	SDL_Surface *s, *tmp = NULL;
 
 	/* Get the source SDL surface */
@@ -398,9 +400,9 @@ static EEL_xno gl_uploadtexture(EEL_vm *vm)
 	/* Convert */
 /* TODO: Optimization: Convert only when OpenGL can't handle it! */
 	tmp = SDL_ConvertSurface(s,
-			s->format->Amask || s->flags & SDL_SRCCOLORKEY ?
+			s->format->Amask || (SDL_GetColorKey(s, &ck) >= 0) ?
 					&eelgl_md.RGBAfmt : &eelgl_md.RGBfmt,
-			SDL_SWSURFACE);
+			0);
 
 	/* Setup... */
 	eelgl_md.BindTexture(GL_TEXTURE_2D, tex);
@@ -1055,11 +1057,10 @@ static const EEL_lconstexp eelgl_constants[] =
 	{"HVCLAMP",			EELGL_HCLAMP | EELGL_VCLAMP	},
 
 	/* SDL  OpenGL Attributes */
-	{"RED_SIZE",			SDL_GL_RED_SIZE			},
-	{"GREEN_SIZE",			SDL_GL_GREEN_SIZE		},
-	{"BLUE_SIZE",			SDL_GL_BLUE_SIZE		},
-/*	{"DOUBLEBUFFER",		SDL_GL_DOUBLEBUFFER		},*/
-	{"SWAP_CONTROL",		SDL_GL_SWAP_CONTROL		},
+	{"ATTR_RED_SIZE",		SDL_GL_RED_SIZE			},
+	{"ATTR_GREEN_SIZE",		SDL_GL_GREEN_SIZE		},
+	{"ATTR_BLUE_SIZE",		SDL_GL_BLUE_SIZE		},
+	{"ATTR_DOUBLEBUFFER",		SDL_GL_DOUBLEBUFFER		},
 
 	/* Error codes */
 	{"NO_ERROR",			GL_NO_ERROR			},

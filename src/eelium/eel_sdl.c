@@ -2,7 +2,7 @@
 ---------------------------------------------------------------------------
 	eel_sdl.c - EEL SDL Binding
 ---------------------------------------------------------------------------
- * Copyright 2005-2007, 2009-2011, 2013-2014, 2016 David Olofson
+ * Copyright 2005-2007, 2009-2011, 2013-2014, 2016-2017 David Olofson
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from the
@@ -411,6 +411,11 @@ static EEL_xno s_construct(EEL_vm *vm, EEL_types type,
 			return EEL_XARGUMENTS;
 		}
 		break;
+#if 0
+	/*
+	 * There can be more than one "video surface" in SDL2, so we're just
+	 * dropping this shortcut for now.
+	 */
 	  case 3:	/* bpp + masks from display */
 	  {
 		/* Grab info from the display surface */
@@ -427,6 +432,7 @@ static EEL_xno s_construct(EEL_vm *vm, EEL_types type,
 		amask = ds->format->Amask;
 		break;
 	  }
+#endif
 	  case 0:
 		// Create empty Surface object
 		eo = eel_o_alloc(vm, sizeof(ESDL_surface), type);
@@ -2453,6 +2459,11 @@ EEL_xno eel_sdl_init(EEL_vm *vm)
 	eel_set_metamethod(c, EEL_MM_GETINDEX, r_getindex);
 	eel_set_metamethod(c, EEL_MM_SETINDEX, r_setindex);
 	eel_set_casts(vm, esdl_md.rect_cid, esdl_md.rect_cid, r_clone);
+
+	c = eel_export_class(m, "Window", EEL_COBJECT,
+			w_construct, w_destruct, NULL);
+	eel_set_metamethod(c, EEL_MM_GETINDEX, w_getindex);
+	esdl_md.window_cid = eel_class_typeid(c);
 
 	c = eel_export_class(m, "Surface", EEL_COBJECT,
 			s_construct, s_destruct, NULL);

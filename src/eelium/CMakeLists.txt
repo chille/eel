@@ -53,29 +53,25 @@ set(sources
 	zeespace/zs_region.c
 )
 
+pkg_search_module(SDL2 REQUIRED sdl2)
+include_directories(${SDL2_INCLUDE_DIRS})
 
-find_package(SDL REQUIRED)
-include_directories(${SDL_INCLUDE_DIR})
+pkg_search_module(SDL2IMAGE REQUIRED SDL2_image>=2.0.0)
+include_directories(${SDL2IMAGE_INCLUDE_DIRS})
 
-find_package(SDL_net REQUIRED)
-include_directories(${SDLNET_INCLUDE_DIR})
+pkg_search_module(SDL2NET REQUIRED SDL2_net)
+include_directories(${SDL2NET_INCLUDE_DIRS})
 
-find_package(SDL_image REQUIRED)
-include_directories(${SDLIMAGE_INCLUDE_DIR})
+pkg_search_module(AUDIALITY2 REQUIRED audiality2)
+include_directories(${AUDIALITY2_INCLUDE_DIRS})
 
 find_package(PNG REQUIRED)
 include_directories(${PNG_INCLUDE_DIR})
-
-#find_package(AUDIALITY2 REQUIRED)
-#include_directories(${AUDIALITY2_INCLUDE_DIR})
-pkg_check_modules(AUDIALITY2 REQUIRED audiality2)
-include_directories(${AUDIALITY2_INCLUDE_DIRS})
 
 find_package(ALSA)
 if(ALSA_FOUND)
 	add_definitions(-DA2_HAVE_ALSA)
 endif(ALSA_FOUND)
-
 
 add_library(libeelium ${sources})
 

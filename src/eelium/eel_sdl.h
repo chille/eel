@@ -2,7 +2,7 @@
 ---------------------------------------------------------------------------
 	eel_sdl.h - EEL SDL Binding
 ---------------------------------------------------------------------------
- * Copyright 2005, 2007, 2009, 2011, 2013-2014 David Olofson
+ * Copyright 2005, 2007, 2009, 2011, 2013-2014, 2017 David Olofson
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from the
@@ -29,6 +29,22 @@
 #include "sfifo.h"
 
 EEL_MAKE_CAST(SDL_Rect)
+
+
+/* Window */
+typedef struct
+{
+	SDL_Window	*window;
+} ESDL_window;
+EEL_MAKE_CAST(ESDL_window)
+
+
+/* Renderer */
+typedef struct
+{
+	SDL_Renderer	*renderer;
+} ESDL_renderer;
+EEL_MAKE_CAST(ESDL_renderer)
 
 
 /* Surface */
@@ -64,12 +80,10 @@ typedef struct
 {
 	/* Class Type IDs */
 	int		rect_cid;
+	int		window_cid;
 	int		surface_cid;
 	int		surfacelock_cid;
 	int		joystick_cid;
-
-	/* Current video surface, if any */
-	EEL_object	*video_surface;
 
 	/* Linked list of joysticks */
 	ESDL_joystick	*joysticks;
