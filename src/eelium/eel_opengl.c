@@ -553,10 +553,14 @@ static EEL_xno gl_hint(EEL_vm *vm)
 static EEL_xno gl_readpixels(EEL_vm *vm)
 {
 	EEL_value *args = vm->heap + vm->argv;
-	int sx, sy, dx, dy, w, h;
+	int sx, sy, dx, dy, w, h, vw, vh;
 	SDL_Surface *dst;
-	int vw = o2ESDL_surface(esdl_md.video_surface)->surface->w;
-	int vh = o2ESDL_surface(esdl_md.video_surface)->surface->h;
+
+	SDL_Window *cw = SDL_GL_GetCurrentWindow();
+	if(!cw)
+		return EEL_XDEVICEERROR;
+	SDL_GL_GetDrawableSize(cw, &vw, &vh);
+
 	if(EEL_TYPE(args) == EEL_TNIL)
 	{
 		sx = sy = 0;

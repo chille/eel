@@ -464,17 +464,8 @@ static EEL_xno s_construct(EEL_vm *vm, EEL_types type,
 static EEL_xno s_destruct(EEL_object *eo)
 {
 	ESDL_surface *s = o2ESDL_surface(eo);
-	if(s->surface)
-	{
-		if(eo == esdl_md.video_surface)
-		{
-			SDL_SetVideoMode(0, 0, 0, 0);
-			esdl_md.video_surface = NULL;
-			eel_gl_dummy_calls();
-		}
-		else
-			SDL_FreeSurface(s->surface);
-	}
+	if(s->surface && !s->is_window_surface)
+		SDL_FreeSurface(s->surface);
 	return 0;
 }
 
@@ -500,9 +491,18 @@ static EEL_xno s_getindex(EEL_object *eo, EEL_value *op1, EEL_value *op2)
 	else if(!strcmp(is, "flags"))
 		op2->integer.v = s->surface->flags;
 	else if(!strcmp(is, "alpha"))
-		op2->integer.v = s->surface->format->alpha;
+	{
+		Uint8 am;
+		SDL_GetSurfaceAlphaMod(s->surface, &am);
+		op2->integer.v = am;
+	}
 	else if(!strcmp(is, "colorkey"))
-		op2->integer.v = s->surface->format->colorkey;
+	{
+		Uint32 ck;
+		if(SDL_GetColorKey(s->surface, &ck))
+			return EEL_XWRONGINDEX;
+		op2->integer.v = ck;
+	}
 	else if(!strcmp(is, "palette"))
 	{
 		op2->integer.v = s->surface->format->palette ? 1 : 0;
@@ -659,7 +659,7 @@ static EEL_xno esdl_JoystickName(EEL_vm *vm)
 	const char *s;
 	if(!SDL_WasInit(SDL_INIT_JOYSTICK))
 		SDL_InitSubSystem(SDL_INIT_JOYSTICK);
-	s = SDL_JoystickName(eel_v2l(vm->heap + vm->argv));
+	s = SDL_JoystickNameForIndex(eel_v2l(vm->heap + vm->argv));
 	if(!s)
 		return EEL_XWRONGINDEX;
 	eel_s2v(vm, vm->heap + vm->resv, s);
@@ -686,8 +686,10 @@ static EEL_xno j_construct(EEL_vm *vm, EEL_types type,
 	  default:
 		return EEL_XARGUMENTS;
 	}
+#if 0
 	if(SDL_JoystickOpened(ind))
 		return EEL_XDEVICEOPENED;
+#endif
 	eo = eel_o_alloc(vm, sizeof(ESDL_joystick), type);
 	if(!eo)
 		return EEL_XMEMORY;
@@ -701,7 +703,7 @@ static EEL_xno j_construct(EEL_vm *vm, EEL_types type,
 		eel_o_free(eo);
 		return EEL_XDEVICEERROR;
 	}
-	j->name = eel_ps_new(vm, SDL_JoystickName(j->index));
+	j->name = eel_ps_new(vm, SDL_JoystickName(j->joystick));
 	eel_o2v(result, eo);
 	return 0;
 }
@@ -751,127 +753,105 @@ static EEL_xno j_getindex(EEL_object *eo, EEL_value *op1, EEL_value *op2)
 	return 0;
 }
 
-	
+
+/*----------------------------------------------------------
+	Window class
+----------------------------------------------------------*/
+
+static EEL_xno w_construct(EEL_vm *vm, EEL_types type,
+		EEL_value *initv, int initc, EEL_value *result)
+{
+	ESDL_window *win;
+	EEL_object *eo;
+	const char *title;
+	int x, y, w, h;
+	Uint32 flags = 0;
+	switch(initc)
+	{
+	  case 6:
+		flags = eel_v2l(initv + 5);
+		/* Fall-trough */
+	  case 5:
+		title = eel_v2s(initv);
+		x = eel_v2l(initv + 1);
+		y = eel_v2l(initv + 2);
+		w = eel_v2l(initv + 3);
+		h = eel_v2l(initv + 4);
+		break;
+	  default:
+		return EEL_XARGUMENTS;
+	}
+	if(!(eo = eel_o_alloc(vm, sizeof(ESDL_window), type)))
+		return EEL_XMEMORY;
+	win = o2ESDL_window(eo);
+	if(!(win->window = SDL_CreateWindow(title, x, y, w, h, flags)))
+	{
+		eel_o_free(eo);
+		return EEL_XDEVICEOPEN;
+	}
+	eel_o2v(result, eo);
+	return 0;
+}
+
+
+static EEL_xno w_destruct(EEL_object *eo)
+{
+	SDL_DestroyWindow(o2ESDL_window(eo)->window);
+	return 0;
+}
+
+
+/*----------------------------------------------------------
+	Renderer class
+----------------------------------------------------------*/
+
+static EEL_xno rn_construct(EEL_vm *vm, EEL_types type,
+		EEL_value *initv, int initc, EEL_value *result)
+{
+	ESDL_renderer *r;
+	EEL_object *eo;
+	ESDL_window *win;
+	int drv = -1;
+	Uint32 flags = 0;
+	switch(initc)
+	{
+	  case 3:
+		flags = eel_v2l(initv + 2);
+		/* Fall-trough */
+	  case 2:
+		drv = eel_v2l(initv + 1);
+		/* Fall-trough */
+	  case 1:
+		if(EEL_TYPE(initv) != esdl_md.window_cid)
+			return EEL_XWRONGTYPE;
+		win = o2ESDL_window(initv->objref.v);
+		break;
+	  default:
+		return EEL_XARGUMENTS;
+	}
+	if(!(eo = eel_o_alloc(vm, sizeof(ESDL_renderer), type)))
+		return EEL_XMEMORY;
+	r = o2ESDL_renderer(eo);
+	if(!(r->renderer = SDL_CreateRenderer(win->window, drv, flags)))
+	{
+		eel_o_free(eo);
+		return EEL_XDEVICEOPEN;
+	}
+	eel_o2v(result, eo);
+	return 0;
+}
+
+
+static EEL_xno rn_destruct(EEL_object *eo)
+{
+	SDL_DestroyRenderer(o2ESDL_renderer(eo)->renderer);
+	return 0;
+}
+
+
 /*----------------------------------------------------------
 	SDL Calls
 ----------------------------------------------------------*/
-
-static EEL_xno esdl_GetVideoInfo(EEL_vm *vm)
-{
-	const SDL_VideoInfo *vi;
-	EEL_value v;
-	EEL_object *t;
-	EEL_xno x = eel_o_construct(vm, EEL_CTABLE, NULL, 0, &v);
-	if(x)
-		return x;
-	t = eel_v2o(&v);
-	vi = SDL_GetVideoInfo();
-	esdl_setb(t, "hw_available", vi->hw_available);
-	esdl_setb(t, "wm_available", vi->wm_available);
-	esdl_setb(t, "blit_hw", vi->blit_hw);
-	esdl_setb(t, "blit_hw_CC", vi->blit_hw_CC);
-	esdl_setb(t, "blit_hw_A", vi->blit_hw_A);
-	esdl_setb(t, "blit_sw", vi->blit_sw);
-	esdl_setb(t, "blit_sw_CC", vi->blit_sw_CC);
-	esdl_setb(t, "blit_sw_A", vi->blit_sw_A);
-	esdl_setb(t, "blit_fill", vi->blit_fill);
-	esdl_seti(t, "video_mem", vi->video_mem);
-	esdl_seti(t, "current_w", vi->current_w);
-	esdl_seti(t, "current_h", vi->current_h);
-	eel_o2v(vm->heap + vm->resv, t);
-	return 0;
-}
-
-
-static EEL_xno esdl_SetVideoMode(EEL_vm *vm)
-{
-	EEL_xno x;
-	int width = 640;
-	int height = 480;
-	int bpp = 24;
-	int flags = 0;
-	SDL_Surface *screen;
-	EEL_value *arg = vm->heap + vm->argv;
-
-	if(vm->argc >= 1)
-	{
-		int v = eel_v2l(arg);
-		if(v)
-			width = v;
-		else if(arg->type == EEL_TBOOLEAN)
-		{
-			SDL_QuitSubSystem(SDL_INIT_VIDEO);
-			SDL_InitSubSystem(SDL_INIT_VIDEO);
-			if(esdl_md.video_surface)
-			{
-				ESDL_surface *s = o2ESDL_surface(esdl_md.video_surface);
-				s->surface = NULL;
-#if 0
-				/*
-				 * This pointer does not have ownership! We
-				 * might want to upgrade to an EEL weakref...
-				 */
-				eel_disown(esdl_md.video_surface);
-#endif
-				esdl_md.video_surface = NULL;
-			}
-			eel_gl_dummy_calls();
-			eel_nil2v(vm->heap + vm->resv);
-			return 0;
-		}
-	}
-	if(vm->argc >= 2)
-	{
-		int v = eel_v2l(arg + 1);
-		if(v)
-			height = v;
-	}
-	if(vm->argc >= 3)
-		bpp = eel_v2l(arg + 2);
-	if(vm->argc >= 4)
-		flags = eel_v2l(arg + 3);
-
-	/* Open new display */
-	screen = SDL_SetVideoMode(width, height, bpp, flags);
-	if(!screen)
-	{
-		ESDL_surface *s = o2ESDL_surface(esdl_md.video_surface);
-		s->surface = NULL;
-//		eel_disown(esdl_md.video_surface);
-		esdl_md.video_surface = NULL;
-		eel_gl_dummy_calls();
-		return EEL_XDEVICEOPEN;
-	}
-
-	/* Update existing video surface object, if any */
-	if(esdl_md.video_surface)
-	{
-		ESDL_surface *s = o2ESDL_surface(esdl_md.video_surface);
-		s->surface = screen;
-		eel_own(esdl_md.video_surface);
-	}
-	else
-	{
-		ESDL_surface *s;
-		x = eel_o_construct(vm, esdl_md.surface_cid, NULL, 0,
-				vm->heap + vm->resv);
-		if(x)
-		{
-			SDL_QuitSubSystem(SDL_INIT_VIDEO);
-			SDL_InitSubSystem(SDL_INIT_VIDEO);
-			eel_gl_dummy_calls();
-			return x;
-		}
-		s = o2ESDL_surface(vm->heap[vm->resv].objref.v);
-		s->surface = screen;
-		esdl_md.video_surface = vm->heap[vm->resv].objref.v;
-	}
-	eel_gl_load(0);
-	eel_o2v(vm->heap + vm->resv, esdl_md.video_surface);
-//	eel_own(esdl_md.video_surface);
-	return 0;
-}
-
 
 static EEL_xno esdl_SetCaption(EEL_vm *vm)
 {
@@ -2462,8 +2442,11 @@ EEL_xno eel_sdl_init(EEL_vm *vm)
 
 	c = eel_export_class(m, "Window", EEL_COBJECT,
 			w_construct, w_destruct, NULL);
-	eel_set_metamethod(c, EEL_MM_GETINDEX, w_getindex);
 	esdl_md.window_cid = eel_class_typeid(c);
+
+	c = eel_export_class(m, "Renderer", EEL_COBJECT,
+			rn_construct, rn_destruct, NULL);
+	esdl_md.renderer_cid = eel_class_typeid(c);
 
 	c = eel_export_class(m, "Surface", EEL_COBJECT,
 			s_construct, s_destruct, NULL);
@@ -2481,8 +2464,9 @@ EEL_xno eel_sdl_init(EEL_vm *vm)
 	esdl_md.joystick_cid = eel_class_typeid(c);
 
 	/* Display and surface handling */
+#if 0
 	eel_export_cfunction(m, 1, "GetVideoInfo", 0, 0, 0, esdl_GetVideoInfo);
-	eel_export_cfunction(m, 1, "SetVideoMode", 0, 4, 0, esdl_SetVideoMode);
+#endif
 	eel_export_cfunction(m, 0, "Flip", 0, 0, 0, esdl_Flip);
 	eel_export_cfunction(m, 0, "SetClipRect", 0, 2, 0, esdl_SetClipRect);
 	eel_export_cfunction(m, 0, "Update", 0, 4, 0, esdl_Update);

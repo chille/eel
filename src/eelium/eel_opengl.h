@@ -2,7 +2,7 @@
 ---------------------------------------------------------------------------
 	eel_opengl.h - EEL OpenGL Binding
 ---------------------------------------------------------------------------
- * Copyright 2010-2012, 2014 David Olofson
+ * Copyright 2010-2012, 2014, 2017 David Olofson
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from the
@@ -54,6 +54,15 @@
 #endif
 #ifndef APIENTRY
 #define APIENTRY
+#endif
+
+#if 0
+/* SDL2 GL context */
+typedef struct
+{
+	SDL_GLContext	*glcontext;
+} ESDL_glcontext;
+EEL_MAKE_CAST(ESDL_glcontext)
 #endif
 
 /*

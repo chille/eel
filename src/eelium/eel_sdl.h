@@ -51,6 +51,7 @@ EEL_MAKE_CAST(ESDL_renderer)
 typedef struct
 {
 	SDL_Surface	*surface;
+	int		is_window_surface;
 } ESDL_surface;
 EEL_MAKE_CAST(ESDL_surface)
 
@@ -81,6 +82,7 @@ typedef struct
 	/* Class Type IDs */
 	int		rect_cid;
 	int		window_cid;
+	int		renderer_cid;
 	int		surface_cid;
 	int		surfacelock_cid;
 	int		joystick_cid;
