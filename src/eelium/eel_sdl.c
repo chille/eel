@@ -411,28 +411,6 @@ static EEL_xno s_construct(EEL_vm *vm, EEL_types type,
 			return EEL_XARGUMENTS;
 		}
 		break;
-#if 0
-	/*
-	 * There can be more than one "video surface" in SDL2, so we're just
-	 * dropping this shortcut for now.
-	 */
-	  case 3:	/* bpp + masks from display */
-	  {
-		/* Grab info from the display surface */
-		SDL_Surface *ds = SDL_GetVideoSurface();
-		if(!ds)
-			return EEL_XDEVICECONTROL;
-		flags = eel_v2l(initv);
-		w = eel_v2l(initv + 1);
-		h = eel_v2l(initv + 2);
-		bpp = ds->format->BitsPerPixel;
-		rmask = ds->format->Rmask;
-		gmask = ds->format->Gmask;
-		bmask = ds->format->Bmask;
-		amask = ds->format->Amask;
-		break;
-	  }
-#endif
 	  case 0:
 		// Create empty Surface object
 		eo = eel_o_alloc(vm, sizeof(ESDL_surface), type);
@@ -853,41 +831,53 @@ static EEL_xno rn_destruct(EEL_object *eo)
 	SDL Calls
 ----------------------------------------------------------*/
 
-static EEL_xno esdl_SetCaption(EEL_vm *vm)
+static EEL_xno esdl_SetWindowTitle(EEL_vm *vm)
 {
-	EEL_value *arg = vm->heap + vm->argv;
-	const char *name, *icon;
-	name = eel_v2s(arg);
-	if(vm->argc >= 2)
-		icon = eel_v2s(arg + 1);
-	else
-		icon = name;
-	if(!name || !icon)
-		return EEL_XWRONGTYPE;
-	SDL_WM_SetCaption(name, icon);
+	ESDL_ARGS
+	ESDL_ARGDEF_WINDOW(win, 0)
+	ESDL_ARGDEF_STRING(title, 1)
+	ESDL_ARG_WINDOW(win, 0)
+	ESDL_ARG_STRING(title, 1)
+	SDL_SetWindowTitle(win, title);
 	return 0;
 }
 
 
 static EEL_xno esdl_ShowCursor(EEL_vm *vm)
 {
-	eel_l2v(vm->heap + vm->resv, SDL_ShowCursor(eel_v2l(vm->heap + vm->argv)));
+	eel_l2v(vm->heap + vm->resv, SDL_ShowCursor(
+			eel_v2l(vm->heap + vm->argv)));
 	return 0;
 }
 
 
 static EEL_xno esdl_WarpMouse(EEL_vm *vm)
 {
-	EEL_value *args = vm->heap + vm->argv;
-	SDL_WarpMouse(eel_v2l(args), eel_v2l(args + 1));
+	ESDL_ARGS
+	ESDL_ARGDEF_INTEGER(x, 0)
+	ESDL_ARGDEF_INTEGER(y, 1)
+	ESDL_ARG_INTEGER(x, 0)
+	ESDL_ARG_INTEGER(y, 1)
+	if(vm->argc >= 3)
+	{
+		ESDL_ARGDEF_WINDOW(win, 2)
+		ESDL_ARG_WINDOW(win, 2)
+		SDL_WarpMouseInWindow(win, x, y);
+	}
+	else
+		SDL_WarpMouseGlobal(x, y);
 	return 0;
 }
 
 
-static EEL_xno esdl_GrabInput(EEL_vm *vm)
+static EEL_xno esdl_SetWindowGrab(EEL_vm *vm)
 {
-	eel_l2v(vm->heap + vm->resv,
-			SDL_WM_GrabInput(eel_v2l(vm->heap + vm->argv)));
+	EEL_value *args = vm->heap + vm->argv;
+	ESDL_window *win;
+	if(EEL_TYPE(args) != esdl_md.window_cid)
+		return EEL_XWRONGTYPE;
+	win = o2ESDL_window(args[0].objref.v);
+	SDL_SetWindowGrab(win->window, eel_v2l(args + 1));
 	return 0;
 }
 
@@ -914,167 +904,128 @@ static EEL_xno esdl_Delay(EEL_vm *vm)
 }
 
 
-static EEL_xno esdl_Flip(EEL_vm *vm)
+static EEL_xno esdl_RenderPresent(EEL_vm *vm)
 {
-	SDL_Surface *s = SDL_GetVideoSurface();
-	if(!s)
-		return EEL_XDEVICECONTROL;
-	if(SDL_Flip(s) < 0)
-		return EEL_XDEVICECONTROL;
+	EEL_value *args = vm->heap + vm->argv;
+	ESDL_renderer *rn;
+	if(EEL_TYPE(args) != esdl_md.renderer_cid)
+		return EEL_XWRONGTYPE;
+	rn = o2ESDL_renderer(args[0].objref.v);
+	SDL_RenderPresent(rn->renderer);
 	return 0;
 }
 
 
 static EEL_xno esdl_SetClipRect(EEL_vm *vm)
 {
-	EEL_value *arg = vm->heap + vm->argv;
-	SDL_Surface *s = NULL;
+	EEL_value *args = vm->heap + vm->argv;
+	SDL_Surface *s;
 	SDL_Rect *r = NULL;
-	switch(vm->argc)
+	if(EEL_TYPE(args) != esdl_md.surface_cid)
+		return EEL_XWRONGTYPE;
+	s = o2ESDL_surface(args->objref.v)->surface;
+	if((vm->argc >= 2) && (EEL_TYPE(args + 1) != EEL_TNIL))
 	{
-	  case 2:	/* Rect */
-		if(EEL_TYPE(arg + 1) != EEL_TNIL)
-		{
-			if(EEL_TYPE(arg + 1) != esdl_md.rect_cid)
-				return EEL_XWRONGTYPE;
-			r = o2SDL_Rect(arg[1].objref.v);
-		}
-	  case 1:	/* Surface */
-		if(EEL_TYPE(arg) != EEL_TNIL)
-		{
-			if(EEL_TYPE(arg) != esdl_md.surface_cid)
-				return EEL_XWRONGTYPE;
-			s = o2ESDL_surface(arg->objref.v)->surface;
-		}
-	}
-	if(!s)
-	{
-		s = SDL_GetVideoSurface();
-		if(!s)
-			return EEL_XDEVICEWRITE;
+		if(EEL_TYPE(args + 1) != esdl_md.rect_cid)
+			return EEL_XWRONGTYPE;
+		r = o2SDL_Rect(args[1].objref.v);
 	}
 	SDL_SetClipRect(s, r);
 	return 0;
 }
 
 
-static EEL_xno esdl_Update(EEL_vm *vm)
+static EEL_xno esdl_UpdateWindowSurface(EEL_vm *vm)
+{
+	EEL_value *args = vm->heap + vm->argv;
+	ESDL_window *win;
+	if(EEL_TYPE(args) != esdl_md.window_cid)
+		return EEL_XWRONGTYPE;
+	win = o2ESDL_window(args[0].objref.v);
+	if(SDL_UpdateWindowSurface(win->window) < 0)
+		return EEL_XDEVICECONTROL;
+	return 0;
+}
+
+
+static EEL_xno esdl_UpdateWindowSurfaceRects(EEL_vm *vm)
 {
 	EEL_xno x;
-	SDL_Surface *s = SDL_GetVideoSurface();
-	EEL_value *arg = vm->heap + vm->argv;
-	if(!s)
-		return EEL_XDEVICECONTROL;
-	if(!vm->argc)
+	EEL_value *args = vm->heap + vm->argv;
+	ESDL_window *win;
+	if(EEL_TYPE(args) != esdl_md.window_cid)
+		return EEL_XWRONGTYPE;
+	win = o2ESDL_window(args[0].objref.v);
+#if 0
+	SDL_Rect cr;
+	cr.x = 0;
+	cr.y = 0;
+	cr.w = s->w;
+	cr.h = s->h;
+#endif
+	if(EEL_TYPE(args + 1) == esdl_md.rect_cid)
 	{
-		SDL_UpdateRect(s, 0, 0, 0, 0);
-		return 0;
+		SDL_Rect r = *o2SDL_Rect(args[1].objref.v);
+#if 0
+		clip_rect(&r, &cr);
+#endif
+		SDL_UpdateWindowSurfaceRects(win->window, &r, 1);
 	}
-	if(vm->argc == 1)
+	else if((EEL_classes)EEL_TYPE(args + 1) == EEL_CARRAY)
 	{
-		SDL_Rect cr;
-		cr.x = 0;
-		cr.y = 0;
-		cr.w = s->w;
-		cr.h = s->h;
-		if(EEL_TYPE(arg) == esdl_md.rect_cid)
+		int i, len;
+		EEL_value v;
+		EEL_object *a = args[1].objref.v;
+		SDL_Rect *ra;
+		len = eel_length(a);
+		if(len < 0)
+			return EEL_XCANTINDEX;
+		ra = eel_malloc(vm, len * sizeof(SDL_Rect));
+		if(!ra)
+			return EEL_XMEMORY;
+		for(i = 0; i < len; ++i)
 		{
-			SDL_Rect r = *o2SDL_Rect(arg->objref.v);
-			clip_rect(&r, &cr);
-			SDL_UpdateRects(s, 1, &r);
-		}
-		else if((EEL_classes)EEL_TYPE(arg) == EEL_CARRAY)
-		{
-			int i, len;
-			EEL_value v;
-			EEL_object *a = arg->objref.v;
-			SDL_Rect *ra;
-			len = eel_length(a);
-			if(len < 0)
-				return EEL_XCANTINDEX;
-			ra = eel_malloc(vm, len * sizeof(SDL_Rect));
-			if(!ra)
-				return EEL_XMEMORY;
-			for(i = 0; i < len; ++i)
+			x = eel_getlindex(a, i, &v);
+			if(x)
 			{
-				x = eel_getlindex(a, i, &v);
-				if(x)
-				{
-					eel_free(vm, ra);
-					return x;
-				}
-				if(EEL_TYPE(&v) != esdl_md.rect_cid)
-				{
-					eel_v_disown(&v);
-					continue;	/* Ignore... */
-				}
-				ra[i] = *o2SDL_Rect(v.objref.v);
-				clip_rect(&ra[i], &cr);
-				eel_disown(v.objref.v);
+				eel_free(vm, ra);
+				return x;
 			}
-			SDL_UpdateRects(s, len, ra);
-			eel_free(vm, ra);
+			if(EEL_TYPE(&v) != esdl_md.rect_cid)
+			{
+				eel_v_disown(&v);
+				continue;	/* Ignore... */
+			}
+			ra[i] = *o2SDL_Rect(v.objref.v);
+#if 0
+			clip_rect(&ra[i], &cr);
+#endif
+			eel_disown(v.objref.v);
 		}
-		else
-			return EEL_XWRONGTYPE;
+		SDL_UpdateWindowSurfaceRects(win->window, ra, len);
+		eel_free(vm, ra);
 	}
-	else if(vm->argc == 4)
-		SDL_UpdateRect(s, eel_v2l(arg), eel_v2l(arg + 1),
-				eel_v2l(arg + 2), eel_v2l(arg + 3));
 	else
-		return EEL_XARGUMENTS;
+		return EEL_XWRONGTYPE;
 	return 0;
 }
 
 
 static EEL_xno esdl_BlitSurface(EEL_vm *vm)
 {
-	EEL_value *arg = vm->heap + vm->argv;
-	SDL_Surface *from = NULL, *to = NULL;
-	SDL_Rect *fromr = NULL, *tor = NULL;
+	ESDL_ARGS
+	ESDL_ARGDEF_SURFACE(from, 0)
+	ESDL_ARGDEF_RECT(fromr, 1)
+	ESDL_ARGDEF_SURFACE(to, 2)
+	ESDL_ARGDEF_RECT(tor, 3)
 
-	switch(vm->argc)
-	{
-	  case 4:	/* Destination rect */
-		if(EEL_TYPE(arg + 3) != EEL_TNIL)
-		{
-			if(EEL_TYPE(arg + 3) != esdl_md.rect_cid)
-				return EEL_XWRONGTYPE;
-			tor = o2SDL_Rect(arg[3].objref.v);
-		}
-	  case 3:	/* Destination surface */
-		if(EEL_TYPE(arg + 2) != EEL_TNIL)
-		{
-			if(EEL_TYPE(arg + 2) != esdl_md.surface_cid)
-				return EEL_XWRONGTYPE;
-			to = o2ESDL_surface(arg[2].objref.v)->surface;
-		}
-	  case 2:	/* Source rect */
-		if(EEL_TYPE(arg + 1) != EEL_TNIL)
-		{
-			if(EEL_TYPE(arg + 1) != esdl_md.rect_cid)
-				return EEL_XWRONGTYPE;
-			fromr = o2SDL_Rect(arg[1].objref.v);
-		}
-	  case 1:	/* Source surface (required) */
-		if(EEL_TYPE(arg) != EEL_TNIL)
-		{
-			if(EEL_TYPE(arg) != esdl_md.surface_cid)
-				return EEL_XWRONGTYPE;
-			from = o2ESDL_surface(arg->objref.v)->surface;
-		}
-	}
-
-	if(!from || !to)
-	{
-		SDL_Surface *s = SDL_GetVideoSurface();
-		if(!s)
-			return EEL_XDEVICEWRITE;	/* No screen! */
-		if(!from)
-			from = s;
-		if(!to)
-			to = s;
-	}
+	ESDL_ARG_SURFACE(from, 0)
+	ESDL_ARG_RECT(fromr, 1)
+	ESDL_ARG_SURFACE(to, 2)
+	if(vm->argc >= 4)
+		ESDL_ARG_RECT(tor, 3)
+	else
+		tor = NULL;
 
 	switch(SDL_BlitSurface(from, fromr, to, tor))
 	{
@@ -1090,7 +1041,7 @@ static EEL_xno esdl_BlitSurface(EEL_vm *vm)
 static EEL_xno esdl_FillRect(EEL_vm *vm)
 {
 	EEL_value *arg = vm->heap + vm->argv;
-	SDL_Surface *to = NULL;
+	SDL_Surface *to;
 	SDL_Rect *tor = NULL;
 	int color = 0;
 	switch(vm->argc)
@@ -1104,66 +1055,12 @@ static EEL_xno esdl_FillRect(EEL_vm *vm)
 				return EEL_XWRONGTYPE;
 			tor = o2SDL_Rect(arg[1].objref.v);
 		}
-	  case 1:	/* Surface */
-		if(EEL_TYPE(arg) != EEL_TNIL)
-		{
-			if(EEL_TYPE(arg) != esdl_md.surface_cid)
-				return EEL_XWRONGTYPE;
-			to = o2ESDL_surface(arg->objref.v)->surface;
-		}
 	}
-	if(!to)
-	{
-		to = SDL_GetVideoSurface();
-		if(!to)
-			return EEL_XDEVICEWRITE;
-	}
+	if(EEL_TYPE(arg) != esdl_md.surface_cid)
+		return EEL_XWRONGTYPE;
+	to = o2ESDL_surface(arg->objref.v)->surface;
 	if(SDL_FillRect(to, tor, color) < 0)
 		return EEL_XDEVICEWRITE;
-	return 0;
-}
-
-
-static EEL_xno esdl_DisplayFormat(EEL_vm *vm)
-{
-	EEL_xno x;
-	SDL_Surface *from, *to;
-	EEL_value *arg = vm->heap + vm->argv;
-	if(EEL_TYPE(arg) != esdl_md.surface_cid)
-		return EEL_XWRONGTYPE;
-	from = o2ESDL_surface(arg->objref.v)->surface;
-	to = SDL_DisplayFormat(from);
-	if(!to)
-		return EEL_XDEVICEERROR;
-	x = eel_o_construct(vm, esdl_md.surface_cid, NULL, 0, vm->heap + vm->resv);
-	if(x)
-	{
-		SDL_FreeSurface(to);
-		return x;
-	}
-	o2ESDL_surface(vm->heap[vm->resv].objref.v)->surface = to;
-	return 0;
-}
-
-
-static EEL_xno esdl_DisplayFormatAlpha(EEL_vm *vm)
-{
-	EEL_xno x;
-	SDL_Surface *from, *to;
-	EEL_value *arg = vm->heap + vm->argv;
-	if(EEL_TYPE(arg) != esdl_md.surface_cid)
-		return EEL_XWRONGTYPE;
-	from = o2ESDL_surface(arg->objref.v)->surface;
-	to = SDL_DisplayFormatAlpha(from);
-	if(!to)
-		return EEL_XDEVICEERROR;
-	x = eel_o_construct(vm, esdl_md.surface_cid, NULL, 0, vm->heap + vm->resv);
-	if(x)
-	{
-		SDL_FreeSurface(to);
-		return x;
-	}
-	o2ESDL_surface(vm->heap[vm->resv].objref.v)->surface = to;
 	return 0;
 }
 
@@ -2463,20 +2360,25 @@ EEL_xno eel_sdl_init(EEL_vm *vm)
 	eel_set_metamethod(c, EEL_MM_GETINDEX, j_getindex);
 	esdl_md.joystick_cid = eel_class_typeid(c);
 
-	/* Display and surface handling */
-#if 0
-	eel_export_cfunction(m, 1, "GetVideoInfo", 0, 0, 0, esdl_GetVideoInfo);
-#endif
-	eel_export_cfunction(m, 0, "Flip", 0, 0, 0, esdl_Flip);
+	/* Windows and renderers */
+	eel_export_cfunction(m, 0, "RenderPresent", 1, 0, 0,
+			esdl_RenderPresent);
+	eel_export_cfunction(m, 0, "SetWindowTitle", 2, 0, 0,
+			esdl_SetWindowTitle);
+	eel_export_cfunction(m, 0, "SetWindowGrab", 2, 0, 0,
+			esdl_SetWindowGrab);
+
+	/* Surfaces */
 	eel_export_cfunction(m, 0, "SetClipRect", 0, 2, 0, esdl_SetClipRect);
-	eel_export_cfunction(m, 0, "Update", 0, 4, 0, esdl_Update);
-	eel_export_cfunction(m, 0, "BlitSurface", 1, 3, 0, esdl_BlitSurface);
-	eel_export_cfunction(m, 0, "FillRect", 0, 3, 0, esdl_FillRect);
+	eel_export_cfunction(m, 0, "UpdateWindowSurface", 1, 0, 0,
+			esdl_UpdateWindowSurface);
+	eel_export_cfunction(m, 0, "UpdateWindowSurfaceRects", 2, 0, 0,
+			esdl_UpdateWindowSurfaceRects);
+	eel_export_cfunction(m, 0, "BlitSurface", 3, 1, 0, esdl_BlitSurface);
+	eel_export_cfunction(m, 0, "FillRect", 1, 2, 0, esdl_FillRect);
 	eel_export_cfunction(m, 1, "LockSurface", 1, 0, 0, esdl_LockSurface);
-	eel_export_cfunction(m, 0, "UnlockSurface", 1, 0, 0, esdl_UnlockSurface);
-	eel_export_cfunction(m, 1, "DisplayFormat", 1, 0, 0, esdl_DisplayFormat);
-	eel_export_cfunction(m, 1, "DisplayFormatAlpha", 1, 0, 0,
-			esdl_DisplayFormatAlpha);
+	eel_export_cfunction(m, 0, "UnlockSurface", 1, 0, 0,
+			esdl_UnlockSurface);
 	eel_export_cfunction(m, 0, "SetAlpha", 1, 2, 0, esdl_SetAlpha);
 	eel_export_cfunction(m, 0, "SetColorKey", 1, 2, 0, esdl_SetColorKey);
 	eel_export_cfunction(m, 1, "SetColors", 2, 1, 0, esdl_SetColors);
@@ -2485,13 +2387,9 @@ EEL_xno eel_sdl_init(EEL_vm *vm)
 	eel_export_cfunction(m, 1, "GetTicks", 0, 0, 0, esdl_GetTicks);
 	eel_export_cfunction(m, 0, "Delay", 1, 0, 0, esdl_Delay);
 
-	/* WM stuff */
-	eel_export_cfunction(m, 0, "SetCaption", 1, 1, 0, esdl_SetCaption);
-	eel_export_cfunction(m, 1, "GrabInput", 1, 0, 0, esdl_GrabInput);
-
 	/* Mouse control */
 	eel_export_cfunction(m, 1, "ShowCursor", 1, 0, 0, esdl_ShowCursor);
-	eel_export_cfunction(m, 0, "WarpMouse", 2, 0, 0, esdl_WarpMouse);
+	eel_export_cfunction(m, 0, "WarpMouse", 2, 1, 0, esdl_WarpMouse);
 
 	/* Joystick input */
 	eel_export_cfunction(m, 0, "DetectJoysticks", 0, 0, 0, esdl_DetectJoysticks);

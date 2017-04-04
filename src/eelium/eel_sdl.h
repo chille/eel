@@ -100,4 +100,57 @@ extern ESDL_moduledata esdl_md;
 
 EEL_xno eel_sdl_init(EEL_vm *vm);
 
+
+/* Argument handling macros */
+#define	ESDL_ARGS	EEL_value *args = vm->heap + vm->argv;
+
+#define	ESDL_ARGDEF_INTEGER(n, i)	int n;
+#define	ESDL_ARG_INTEGER(n, i)						\
+{									\
+	n = eel_v2l(args + i);						\
+}
+
+#define	ESDL_ARGDEF_STRING(n, i)	const char *n;
+#define	ESDL_ARG_STRING(n, i)						\
+{									\
+	if(!(n = eel_v2s(args + i)))					\
+		return EEL_XWRONGTYPE;					\
+}
+
+#define	ESDL_ARGDEF_RECT(n, i)	SDL_Rect *n;
+#define	ESDL_ARG_RECT(n, i)						\
+{									\
+	if(EEL_TYPE(args + i) == esdl_md.rect_cid)			\
+		n = o2SDL_Rect(args[i].objref.v);			\
+	else								\
+		return EEL_XWRONGTYPE;					\
+}
+
+#define	ESDL_ARGDEF_SURFACE(n, i)	SDL_Surface *n;
+#define	ESDL_ARG_SURFACE(n, i)						\
+{									\
+	if(EEL_TYPE(args + i) == esdl_md.surface_cid)			\
+		n = o2ESDL_surface(args[i].objref.v)->surface;		\
+	else								\
+		return EEL_XWRONGTYPE;					\
+}
+
+#define	ESDL_ARGDEF_WINDOW(n, i)	SDL_Window *n;
+#define	ESDL_ARG_WINDOW(n, i)						\
+{									\
+	if(EEL_TYPE(args + i) == esdl_md.window_cid)			\
+		n = o2ESDL_window(args[i].objref.v)->window;		\
+	else								\
+		return EEL_XWRONGTYPE;					\
+}
+
+#define	ESDL_ARGDEF_RENDERER(n, i)	SDL_Renderer *n;
+#define	ESDL_ARG_RENDERER(n, i)						\
+{									\
+	if(EEL_TYPE(args + i) == esdl_md.renderer_cid)			\
+		n = o2ESDL_renderer(args[i].objref.v)->renderer;	\
+	else								\
+		return EEL_XWRONGTYPE;					\
+}
+
 #endif /* EELIUM_SDL_H */
