@@ -19,8 +19,6 @@ include_directories(${EEL_SOURCE_DIR}/src/eelium/net2)
 include_directories(${EEL_SOURCE_DIR}/src/eelium/zeedraw)
 include_directories(${EEL_SOURCE_DIR}/src/eelium/zeespace)
 
-check_include_files(SDL/SDL_opengl.h HAS_SDL_OPENGL_H)
-
 # FIXME: eel_physics.c needs to access some internals of the vector types...
 include_directories(${EEL_SOURCE_DIR}/src/core)
 
@@ -75,8 +73,8 @@ endif(ALSA_FOUND)
 
 add_library(libeelium ${sources})
 
-target_link_libraries(libeelium ${SDL_LIBRARY} ${SDLNET_LIBRARY}
-	${SDLIMAGE_LIBRARY} ${PNG_LIBRARY} ${AUDIALITY2_LIBRARIES})
+target_link_libraries(libeelium ${SDL2_LIBRARIES} ${SDL2NET_LIBRARIES}
+	${SDL2IMAGE_LIBRARIES} ${PNG_LIBRARIES} ${AUDIALITY2_LIBRARIES})
 if(WIN32)
 	target_link_libraries(libeelium -lwinmm -ldxguid)
 	# FIXME: Why do we have to pull all these in manually now...?
@@ -88,10 +86,6 @@ set_target_properties(libeelium PROPERTIES VERSION ${VERSION_STRING}
 	SOVERSION ${VERSION_STRING})
 
 set_target_properties(libeelium PROPERTIES OUTPUT_NAME "eelium")
-
-if(HAS_SDL_OPENGL_H)
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DHAS_SDL_OPENGL_H")
-endif(HAS_SDL_OPENGL_H)
 
 configure_file(eelium.pc.cmake ${CMAKE_BINARY_DIR}/eelium.pc @ONLY)
 install(FILES ${CMAKE_BINARY_DIR}/eelium.pc

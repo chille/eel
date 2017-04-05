@@ -833,11 +833,10 @@ static EEL_xno rn_destruct(EEL_object *eo)
 
 static EEL_xno esdl_SetWindowTitle(EEL_vm *vm)
 {
-	ESDL_ARGS
-	ESDL_ARGDEF_WINDOW(win, 0)
-	ESDL_ARGDEF_STRING(title, 1)
-	ESDL_ARG_WINDOW(win, 0)
-	ESDL_ARG_STRING(title, 1)
+	SDL_Window *win;
+	const char *title;
+	ESDL_ARG_WINDOW(0, win)
+	ESDL_ARG_STRING(1, title)
 	SDL_SetWindowTitle(win, title);
 	return 0;
 }
@@ -853,17 +852,13 @@ static EEL_xno esdl_ShowCursor(EEL_vm *vm)
 
 static EEL_xno esdl_WarpMouse(EEL_vm *vm)
 {
-	ESDL_ARGS
-	ESDL_ARGDEF_INTEGER(x, 0)
-	ESDL_ARGDEF_INTEGER(y, 1)
-	ESDL_ARG_INTEGER(x, 0)
-	ESDL_ARG_INTEGER(y, 1)
-	if(vm->argc >= 3)
-	{
-		ESDL_ARGDEF_WINDOW(win, 2)
-		ESDL_ARG_WINDOW(win, 2)
+	int x, y;
+	SDL_Window *win;
+	ESDL_ARG_INTEGER(0, x)
+	ESDL_ARG_INTEGER(1, y)
+	ESDL_OPTARG_WINDOW(2, win, NULL);
+	if(win)
 		SDL_WarpMouseInWindow(win, x, y);
-	}
 	else
 		SDL_WarpMouseGlobal(x, y);
 	return 0;
@@ -1013,20 +1008,12 @@ static EEL_xno esdl_UpdateWindowSurfaceRects(EEL_vm *vm)
 
 static EEL_xno esdl_BlitSurface(EEL_vm *vm)
 {
-	ESDL_ARGS
-	ESDL_ARGDEF_SURFACE(from, 0)
-	ESDL_ARGDEF_RECT(fromr, 1)
-	ESDL_ARGDEF_SURFACE(to, 2)
-	ESDL_ARGDEF_RECT(tor, 3)
-
-	ESDL_ARG_SURFACE(from, 0)
-	ESDL_ARG_RECT(fromr, 1)
-	ESDL_ARG_SURFACE(to, 2)
-	if(vm->argc >= 4)
-		ESDL_ARG_RECT(tor, 3)
-	else
-		tor = NULL;
-
+	SDL_Surface *from, *to;
+	SDL_Rect *fromr, *tor;
+	ESDL_ARG_SURFACE(0, from)
+	ESDL_ARG_RECT(1, fromr)
+	ESDL_ARG_SURFACE(2, to)
+	ESDL_OPTARG_RECT(3, tor, NULL)
 	switch(SDL_BlitSurface(from, fromr, to, tor))
 	{
 	  case -1:
@@ -1040,49 +1027,39 @@ static EEL_xno esdl_BlitSurface(EEL_vm *vm)
 
 static EEL_xno esdl_FillRect(EEL_vm *vm)
 {
-	EEL_value *arg = vm->heap + vm->argv;
 	SDL_Surface *to;
-	SDL_Rect *tor = NULL;
-	int color = 0;
-	switch(vm->argc)
-	{
-	  case 3:	/* Color */
-		color = eel_v2l(arg + 2);
-	  case 2:	/* Rect */
-		if(EEL_TYPE(arg + 1) != EEL_TNIL)
-		{
-			if(EEL_TYPE(arg + 1) != esdl_md.rect_cid)
-				return EEL_XWRONGTYPE;
-			tor = o2SDL_Rect(arg[1].objref.v);
-		}
-	}
-	if(EEL_TYPE(arg) != esdl_md.surface_cid)
-		return EEL_XWRONGTYPE;
-	to = o2ESDL_surface(arg->objref.v)->surface;
+	SDL_Rect *tor;
+	int color;
+	ESDL_ARG_SURFACE(0, to)
+	ESDL_OPTARGNIL_RECT(1, tor, NULL)
+	ESDL_OPTARG_INTEGER(2, color, 0)
 	if(SDL_FillRect(to, tor, color) < 0)
 		return EEL_XDEVICEWRITE;
 	return 0;
 }
 
 
-static EEL_xno esdl_SetAlpha(EEL_vm *vm)
+static EEL_xno esdl_SetSurfaceAlphaMod(EEL_vm *vm)
 {
-	Uint8 alpha;
-	Uint32 flag;
 	SDL_Surface *s;
-	EEL_value *args = vm->heap + vm->argv;
-	if(EEL_TYPE(args) != esdl_md.surface_cid)
-		return EEL_XWRONGTYPE;
-	s = o2ESDL_surface(args->objref.v)->surface;
-	if(vm->argc >= 2)
-		flag = eel_v2l(args + 1);
-	else
-		flag = SDL_SRCALPHA;
-	if(vm->argc >= 3)
-		alpha = eel_v2l(args + 2);
-	else
-		alpha = SDL_ALPHA_OPAQUE;
-	if(SDL_SetAlpha(s, flag, alpha) < 0)
+	Uint8 a;
+	ESDL_ARG_SURFACE(0, s)
+	ESDL_OPTARG_INTEGER(1, a, 255)
+	if(SDL_SetSurfaceAlphaMod(s, a) < 0)
+		return EEL_XDEVICEERROR;
+	return 0;
+}
+
+
+static EEL_xno esdl_SetSurfaceColorMod(EEL_vm *vm)
+{
+	SDL_Surface *s;
+	Uint8 r, g, b;
+	ESDL_ARG_SURFACE(0, s)
+	ESDL_OPTARG_INTEGER(1, r, 255)
+	ESDL_OPTARG_INTEGER(2, g, 255)
+	ESDL_OPTARG_INTEGER(3, b, 255)
+	if(SDL_SetSurfaceColorMod(s, r, g, b) < 0)
 		return EEL_XDEVICEERROR;
 	return 0;
 }
@@ -1090,20 +1067,12 @@ static EEL_xno esdl_SetAlpha(EEL_vm *vm)
 
 static EEL_xno esdl_SetColorKey(EEL_vm *vm)
 {
-	Uint32 flag, key;
 	SDL_Surface *s;
-	EEL_value *args = vm->heap + vm->argv;
-	if(EEL_TYPE(args) != esdl_md.surface_cid)
-		return EEL_XWRONGTYPE;
-	s = o2ESDL_surface(args->objref.v)->surface;
-	if(vm->argc >= 2)
-		flag = eel_v2l(args + 1);
-	else
-		flag = SDL_SRCCOLORKEY;
-	if(vm->argc >= 3)
-		key = eel_v2l(args + 2);
-	else
-		key = 0;
+	int flag;
+	Uint32 key;
+	ESDL_ARG_SURFACE(0, s)
+	ESDL_ARG_INTEGER(1, flag)
+	ESDL_ARG_INTEGER(2, key)
 	if(SDL_SetColorKey(s, flag, key) < 0)
 		return EEL_XDEVICEERROR;
 	return 0;
@@ -1112,10 +1081,10 @@ static EEL_xno esdl_SetColorKey(EEL_vm *vm)
 
 static inline void esdl_raw2color(Uint32 r, SDL_Color *c)
 {
+	c->a = (r >> 24) & 0xff;
 	c->r = (r >> 16) & 0xff;
 	c->g = (r >> 8) & 0xff;
 	c->b = r & 0xff;
-	c->unused = 0;
 }
 
 
@@ -1123,12 +1092,16 @@ static inline void esdl_raw2color(Uint32 r, SDL_Color *c)
 static EEL_xno esdl_SetColors(EEL_vm *vm)
 {
 	SDL_Surface *s;
+	SDL_Palette *p;
 	Uint32 first;
 	EEL_value *args = vm->heap + vm->argv;
 	EEL_value *res = vm->heap + vm->resv;
 	if(EEL_TYPE(args) != esdl_md.surface_cid)
 		return EEL_XWRONGTYPE;
 	s = o2ESDL_surface(args->objref.v)->surface;
+	p = s->format->palette;
+	if(!p)
+		return EEL_XDEVICEWRITE;
 	if(vm->argc >= 3)
 		first = eel_v2l(args + 2);
 	else
@@ -1140,7 +1113,7 @@ static EEL_xno esdl_SetColors(EEL_vm *vm)
 		/* Single color value */
 		SDL_Color c;
 		esdl_raw2color(args[1].integer.v, &c);
-		eel_b2v(res, SDL_SetColors(s, &c, first, 1));
+		eel_b2v(res, SDL_SetPaletteColors(p, &c, first, 1));
 		return 0;
 	  }
 	  case EEL_CVECTOR_U32:
@@ -1162,7 +1135,7 @@ static EEL_xno esdl_SetColors(EEL_vm *vm)
 			return EEL_XMEMORY;
 		for(i = 0; i < len; ++i)
 			esdl_raw2color(rd[i], c + i);
-		eel_b2v(res, SDL_SetColors(s, c, first, len));
+		eel_b2v(res, SDL_SetPaletteColors(p, c, first, len));
 		eel_free(vm, c);
 		return 0;
 	  }
@@ -1180,15 +1153,8 @@ static EEL_xno esdl_MapColor(EEL_vm *vm)
 	int r, g, b;
 	int a = -1;
 	if(EEL_TYPE(arg) != esdl_md.surface_cid)
-	{
-		if(EEL_TYPE(arg) != EEL_TNIL)
-			return EEL_XWRONGTYPE;
-		s = SDL_GetVideoSurface();
-		if(!s)
-			return EEL_XDEVICECONTROL;
-	}
-	else
-		s = o2ESDL_surface(arg->objref.v)->surface;
+		return EEL_XWRONGTYPE;
+	s = o2ESDL_surface(arg->objref.v)->surface;
 	if(vm->argc == 2)
 	{
 		// Packed "hex" ARGB color
@@ -1244,15 +1210,8 @@ static EEL_xno esdl_GetColor(EEL_vm *vm)
 	SDL_Surface *s;
 	Uint8 r, g, b, a;
 	if(EEL_TYPE(arg) != esdl_md.surface_cid)
-	{
-		if(EEL_TYPE(arg) != EEL_TNIL)
-			return EEL_XWRONGTYPE;
-		s = SDL_GetVideoSurface();
-		if(!s)
-			return EEL_XDEVICECONTROL;
-	}
-	else
-		s = o2ESDL_surface(arg->objref.v)->surface;
+		return EEL_XWRONGTYPE;
+	s = o2ESDL_surface(arg->objref.v)->surface;
 	SDL_GetRGBA(eel_v2l(arg + 1), s->format, &r, &g, &b, &a);
 	vm->heap[vm->resv].type = EEL_TINTEGER;
 	vm->heap[vm->resv].integer.v = rgba2c(r, g, b, a);
@@ -1644,20 +1603,22 @@ static EEL_xno esdl_decode_event(EEL_vm *vm, SDL_Event *ev)
 		return x;
 	t = eel_v2o(&v);
 	esdl_seti(t, "type", ev->type);
+	esdl_seti(t, "timestamp", ev->common.timestamp);
 	switch(ev->type)
 	{
-	  case SDL_ACTIVEEVENT:
-		esdl_seti(t, "gain", ev->active.gain);
-		esdl_seti(t, "state", ev->active.state);
+	  case SDL_WINDOWEVENT:
+		esdl_seti(t, "windowID", ev->window.windowID);
+		esdl_seti(t, "event", ev->window.event);
+		esdl_seti(t, "data1", ev->window.data1);
+		esdl_seti(t, "data2", ev->window.data2);
 		break;
 	  case SDL_KEYDOWN:
 	  case SDL_KEYUP:
-		esdl_seti(t, "which", ev->key.which);
+		esdl_seti(t, "windowID", ev->key.windowID);
 		esdl_seti(t, "state", ev->key.state);
 		esdl_seti(t, "scancode", ev->key.keysym.scancode);
 		esdl_seti(t, "sym", ev->key.keysym.sym);
 		esdl_seti(t, "mod", ev->key.keysym.mod);
-		esdl_seti(t, "unicode", ev->key.keysym.unicode);
 		break;
 	  case SDL_MOUSEMOTION:
 		esdl_seti(t, "which", ev->motion.which);
@@ -1697,10 +1658,6 @@ static EEL_xno esdl_decode_event(EEL_vm *vm, SDL_Event *ev)
 		esdl_seti(t, "button", ev->jbutton.button);
 		esdl_seti(t, "state", ev->jbutton.state);
 		break;
-	  case SDL_VIDEORESIZE:
-		esdl_seti(t, "w", ev->resize.w);
-		esdl_seti(t, "h", ev->resize.h);
-		break;
 	  case SDL_USEREVENT:
 		switch(NET2_GetEventType(ev))
 		{
@@ -1727,7 +1684,6 @@ static EEL_xno esdl_decode_event(EEL_vm *vm, SDL_Event *ev)
 		}
 		break;
 	  case SDL_QUIT:
-	  case SDL_VIDEOEXPOSE:
 	  default:
 		break;
 	}
@@ -1771,19 +1727,16 @@ static EEL_xno esdl_EventState(EEL_vm *vm)
 }
 
 
-static EEL_xno esdl_EnableUNICODE(EEL_vm *vm)
+static EEL_xno esdl_StartTextInput(EEL_vm *vm)
 {
-	EEL_value *args = vm->heap + vm->argv;
-	eel_b2v(vm->heap + vm->resv, SDL_EnableUNICODE(eel_v2l(args)));
+	SDL_StartTextInput();
 	return 0;
 }
 
 
-static EEL_xno esdl_EnableKeyRepeat(EEL_vm *vm)
+static EEL_xno esdl_StopTextInput(EEL_vm *vm)
 {
-	EEL_value *args = vm->heap + vm->argv;
-	if(SDL_EnableKeyRepeat(eel_v2l(args), eel_v2l(args + 1)))
-		return EEL_XDEVICEERROR;
+	SDL_StopTextInput();
 	return 0;
 }
 
@@ -1960,8 +1913,6 @@ static EEL_xno esdl_sdl_unload(EEL_object *m, int closing)
 	if(closing)
 	{
 		esdl_detach_joysticks();
-		if(esdl_md.video_surface)
-			eel_disown(esdl_md.video_surface);
 		if(esdl_md.audio_open)
 			audio_close();
 		eel_gl_dummy_calls();
@@ -1987,22 +1938,9 @@ static const EEL_lconstexp esdl_constants[] =
 
 	/* Flags for Surface */
 	{"SWSURFACE",	SDL_SWSURFACE},
-	{"HWSURFACE",	SDL_HWSURFACE},
-	{"ASYNCBLIT",	SDL_ASYNCBLIT},
-	{"ANYFORMAT",	SDL_ANYFORMAT},
-	{"HWPALETTE",	SDL_HWPALETTE},
-	{"DOUBLEBUF",	SDL_DOUBLEBUF},
-	{"FULLSCREEN",	SDL_FULLSCREEN},
-	{"OPENGL",	SDL_OPENGL},
-	{"RESIZABLE",	SDL_RESIZABLE},
-	{"NOFRAME",	SDL_NOFRAME},
-	{"HWACCEL",	SDL_HWACCEL},
-	{"SRCCOLORKEY",	SDL_SRCCOLORKEY},
-	{"RLEACCEL",	SDL_RLEACCEL},
-	{"SRCALPHA",	SDL_SRCALPHA},
 
 	/* SDL event types */
-	{"ACTIVEEVENT",		SDL_ACTIVEEVENT},
+	{"WINDOWEVENT",		SDL_WINDOWEVENT},
 	{"KEYDOWN",		SDL_KEYDOWN},
 	{"KEYUP",		SDL_KEYUP},
 	{"MOUSEMOTION",		SDL_MOUSEMOTION},
@@ -2014,267 +1952,262 @@ static const EEL_lconstexp esdl_constants[] =
 	{"JOYBUTTONDOWN",	SDL_JOYBUTTONDOWN},
 	{"JOYBUTTONUP",		SDL_JOYBUTTONUP},
 	{"QUIT",		SDL_QUIT},
-	{"VIDEORESIZE",		SDL_VIDEORESIZE},
-	{"VIDEOEXPOSE",		SDL_VIDEOEXPOSE},
 	{"USEREVENT",		SDL_USEREVENT},
 
-	/* Various event field constants */
-	{"APPMOUSEFOCUS",	SDL_APPMOUSEFOCUS},
-	{"APPINPUTFOCUS",	SDL_APPINPUTFOCUS},
-	{"APPACTIVE",		SDL_APPACTIVE},
-
 	/* Symbolic key codes */
-	{"KUNKNOWN",	SDLK_UNKNOWN},
-	{"KFIRST",	SDLK_FIRST},
-	{"KBACKSPACE",	SDLK_BACKSPACE},
-	{"KTAB",	SDLK_TAB},
-	{"KCLEAR",	SDLK_CLEAR},
-	{"KRETURN",	SDLK_RETURN},
-	{"KPAUSE",	SDLK_PAUSE},
-	{"KESCAPE",	SDLK_ESCAPE},
-	{"KSPACE",	SDLK_SPACE},
-	{"KEXCLAIM",	SDLK_EXCLAIM},
-	{"KQUOTEDBL",	SDLK_QUOTEDBL},
-	{"KHASH",	SDLK_HASH},
-	{"KDOLLAR",	SDLK_DOLLAR},
-	{"KAMPERSAND",	SDLK_AMPERSAND},
-	{"KQUOTE",	SDLK_QUOTE},
-	{"KLEFTPAREN",	SDLK_LEFTPAREN},
-	{"KRIGHTPAREN",	SDLK_RIGHTPAREN},
-	{"KASTERISK",	SDLK_ASTERISK},
-	{"KPLUS",	SDLK_PLUS},
-	{"KCOMMA",	SDLK_COMMA},
-	{"KMINUS",	SDLK_MINUS},
-	{"KPERIOD",	SDLK_PERIOD},
-	{"KSLASH",	SDLK_SLASH},
-	{"K0",		SDLK_0},
-	{"K1",		SDLK_1},
-	{"K2",		SDLK_2},
-	{"K3",		SDLK_3},
-	{"K4",		SDLK_4},
-	{"K5",		SDLK_5},
-	{"K6",		SDLK_6},
-	{"K7",		SDLK_7},
-	{"K8",		SDLK_8},
-	{"K9",		SDLK_9},
-	{"KCOLON",	SDLK_COLON},
-	{"KSEMICOLON",	SDLK_SEMICOLON},
-	{"KLESS",	SDLK_LESS},
-	{"KEQUALS",	SDLK_EQUALS},
-	{"KGREATER",	SDLK_GREATER},
-	{"KQUESTION",	SDLK_QUESTION},
-	{"KAT",		SDLK_AT},
-	{"KLEFTBRACKET",	SDLK_LEFTBRACKET},
-	{"KBACKSLASH",		SDLK_BACKSLASH},
-	{"KRIGHTBRACKET",	SDLK_RIGHTBRACKET},
-	{"KCARET",		SDLK_CARET},
-	{"KUNDERSCORE",		SDLK_UNDERSCORE},
-	{"KBACKQUOTE",		SDLK_BACKQUOTE},
-	{"Ka",	SDLK_a},
-	{"Kb",	SDLK_b},
-	{"Kc",	SDLK_c},
-	{"Kd",	SDLK_d},
-	{"Ke",	SDLK_e},
-	{"Kf",	SDLK_f},
-	{"Kg",	SDLK_g},
-	{"Kh",	SDLK_h},
-	{"Ki",	SDLK_i},
-	{"Kj",	SDLK_j},
-	{"Kk",	SDLK_k},
-	{"Kl",	SDLK_l},
-	{"Km",	SDLK_m},
-	{"Kn",	SDLK_n},
-	{"Ko",	SDLK_o},
-	{"Kp",	SDLK_p},
-	{"Kq",	SDLK_q},
-	{"Kr",	SDLK_r},
-	{"Ks",	SDLK_s},
-	{"Kt",	SDLK_t},
-	{"Ku",	SDLK_u},
-	{"Kv",	SDLK_v},
-	{"Kw",	SDLK_w},
-	{"Kx",	SDLK_x},
-	{"Ky",	SDLK_y},
-	{"Kz",	SDLK_z},
-	{"KDELETE",	SDLK_DELETE},
-	/* International keyboard syms */
-	{"KWORLD_0",	SDLK_WORLD_0},	/*xA0 */
-	{"KWORLD_1",	SDLK_WORLD_1},
-	{"KWORLD_2",	SDLK_WORLD_2},
-	{"KWORLD_3",	SDLK_WORLD_3},
-	{"KWORLD_4",	SDLK_WORLD_4},
-	{"KWORLD_5",	SDLK_WORLD_5},
-	{"KWORLD_6",	SDLK_WORLD_6},
-	{"KWORLD_7",	SDLK_WORLD_7},
-	{"KWORLD_8",	SDLK_WORLD_8},
-	{"KWORLD_9",	SDLK_WORLD_9},
-	{"KWORLD_10",	SDLK_WORLD_10},
-	{"KWORLD_11",	SDLK_WORLD_11},
-	{"KWORLD_12",	SDLK_WORLD_12},
-	{"KWORLD_13",	SDLK_WORLD_13},
-	{"KWORLD_14",	SDLK_WORLD_14},
-	{"KWORLD_15",	SDLK_WORLD_15},
-	{"KWORLD_16",	SDLK_WORLD_16},
-	{"KWORLD_17",	SDLK_WORLD_17},
-	{"KWORLD_18",	SDLK_WORLD_18},
-	{"KWORLD_19",	SDLK_WORLD_19},
-	{"KWORLD_20",	SDLK_WORLD_20},
-	{"KWORLD_21",	SDLK_WORLD_21},
-	{"KWORLD_22",	SDLK_WORLD_22},
-	{"KWORLD_23",	SDLK_WORLD_23},
-	{"KWORLD_24",	SDLK_WORLD_24},
-	{"KWORLD_25",	SDLK_WORLD_25},
-	{"KWORLD_26",	SDLK_WORLD_26},
-	{"KWORLD_27",	SDLK_WORLD_27},
-	{"KWORLD_28",	SDLK_WORLD_28},
-	{"KWORLD_29",	SDLK_WORLD_29},
-	{"KWORLD_30",	SDLK_WORLD_30},
-	{"KWORLD_31",	SDLK_WORLD_31},
-	{"KWORLD_32",	SDLK_WORLD_32},
-	{"KWORLD_33",	SDLK_WORLD_33},
-	{"KWORLD_34",	SDLK_WORLD_34},
-	{"KWORLD_35",	SDLK_WORLD_35},
-	{"KWORLD_36",	SDLK_WORLD_36},
-	{"KWORLD_37",	SDLK_WORLD_37},
-	{"KWORLD_38",	SDLK_WORLD_38},
-	{"KWORLD_39",	SDLK_WORLD_39},
-	{"KWORLD_40",	SDLK_WORLD_40},
-	{"KWORLD_41",	SDLK_WORLD_41},
-	{"KWORLD_42",	SDLK_WORLD_42},
-	{"KWORLD_43",	SDLK_WORLD_43},
-	{"KWORLD_44",	SDLK_WORLD_44},
-	{"KWORLD_45",	SDLK_WORLD_45},
-	{"KWORLD_46",	SDLK_WORLD_46},
-	{"KWORLD_47",	SDLK_WORLD_47},
-	{"KWORLD_48",	SDLK_WORLD_48},
-	{"KWORLD_49",	SDLK_WORLD_49},
-	{"KWORLD_50",	SDLK_WORLD_50},
-	{"KWORLD_51",	SDLK_WORLD_51},
-	{"KWORLD_52",	SDLK_WORLD_52},
-	{"KWORLD_53",	SDLK_WORLD_53},
-	{"KWORLD_54",	SDLK_WORLD_54},
-	{"KWORLD_55",	SDLK_WORLD_55},
-	{"KWORLD_56",	SDLK_WORLD_56},
-	{"KWORLD_57",	SDLK_WORLD_57},
-	{"KWORLD_58",	SDLK_WORLD_58},
-	{"KWORLD_59",	SDLK_WORLD_59},
-	{"KWORLD_60",	SDLK_WORLD_60},
-	{"KWORLD_61",	SDLK_WORLD_61},
-	{"KWORLD_62",	SDLK_WORLD_62},
-	{"KWORLD_63",	SDLK_WORLD_63},
-	{"KWORLD_64",	SDLK_WORLD_64},
-	{"KWORLD_65",	SDLK_WORLD_65},
-	{"KWORLD_66",	SDLK_WORLD_66},
-	{"KWORLD_67",	SDLK_WORLD_67},
-	{"KWORLD_68",	SDLK_WORLD_68},
-	{"KWORLD_69",	SDLK_WORLD_69},
-	{"KWORLD_70",	SDLK_WORLD_70},
-	{"KWORLD_71",	SDLK_WORLD_71},
-	{"KWORLD_72",	SDLK_WORLD_72},
-	{"KWORLD_73",	SDLK_WORLD_73},
-	{"KWORLD_74",	SDLK_WORLD_74},
-	{"KWORLD_75",	SDLK_WORLD_75},
-	{"KWORLD_76",	SDLK_WORLD_76},
-	{"KWORLD_77",	SDLK_WORLD_77},
-	{"KWORLD_78",	SDLK_WORLD_78},
-	{"KWORLD_79",	SDLK_WORLD_79},
-	{"KWORLD_80",	SDLK_WORLD_80},
-	{"KWORLD_81",	SDLK_WORLD_81},
-	{"KWORLD_82",	SDLK_WORLD_82},
-	{"KWORLD_83",	SDLK_WORLD_83},
-	{"KWORLD_84",	SDLK_WORLD_84},
-	{"KWORLD_85",	SDLK_WORLD_85},
-	{"KWORLD_86",	SDLK_WORLD_86},
-	{"KWORLD_87",	SDLK_WORLD_87},
-	{"KWORLD_88",	SDLK_WORLD_88},
-	{"KWORLD_89",	SDLK_WORLD_89},
-	{"KWORLD_90",	SDLK_WORLD_90},
-	{"KWORLD_91",	SDLK_WORLD_91},
-	{"KWORLD_92",	SDLK_WORLD_92},
-	{"KWORLD_93",	SDLK_WORLD_93},
-	{"KWORLD_94",	SDLK_WORLD_94},
-	{"KWORLD_95",	SDLK_WORLD_95},	/*xFF */
-	/* Numeric keypad */
-	{"KKP0",	SDLK_KP0},
-	{"KKP1",	SDLK_KP1},
-	{"KKP2",	SDLK_KP2},
-	{"KKP3",	SDLK_KP3},
-	{"KKP4",	SDLK_KP4},
-	{"KKP5",	SDLK_KP5},
-	{"KKP6",	SDLK_KP6},
-	{"KKP7",	SDLK_KP7},
-	{"KKP8",	SDLK_KP8},
-	{"KKP9",	SDLK_KP9},
-	{"KKP_PERIOD",	SDLK_KP_PERIOD},
-	{"KKP_DIVIDE",	SDLK_KP_DIVIDE},
-	{"KKP_MULTIPLY",SDLK_KP_MULTIPLY},
-	{"KKP_MINUS",	SDLK_KP_MINUS},
-	{"KKP_PLUS",	SDLK_KP_PLUS},
-	{"KKP_ENTER",	SDLK_KP_ENTER},
-	{"KKP_EQUALS",	SDLK_KP_EQUALS},
-	/* Arrows + Home/End pad */
-	{"KUP",		SDLK_UP},
-	{"KDOWN",	SDLK_DOWN},
-	{"KRIGHT",	SDLK_RIGHT},
-	{"KLEFT",	SDLK_LEFT},
-	{"KINSERT",	SDLK_INSERT},
-	{"KHOME",	SDLK_HOME},
-	{"KEND",	SDLK_END},
-	{"KPAGEUP",	SDLK_PAGEUP},
-	{"KPAGEDOWN",	SDLK_PAGEDOWN},
-	/* Function keys */
-	{"KF1",		SDLK_F1},
-	{"KF2",		SDLK_F2},
-	{"KF3",		SDLK_F3},
-	{"KF4",		SDLK_F4},
-	{"KF5",		SDLK_F5},
-	{"KF6",		SDLK_F6},
-	{"KF7",		SDLK_F7},
-	{"KF8",		SDLK_F8},
-	{"KF9",		SDLK_F9},
-	{"KF10",	SDLK_F10},
-	{"KF11",	SDLK_F11},
-	{"KF12",	SDLK_F12},
-	{"KF13",	SDLK_F13},
-	{"KF14",	SDLK_F14},
-	{"KF15",	SDLK_F15},
-	/* Key state modifier keys */
-	{"KNUMLOCK",	SDLK_NUMLOCK},
-	{"KCAPSLOCK",	SDLK_CAPSLOCK},
-	{"KSCROLLOCK",	SDLK_SCROLLOCK},
-	{"KRSHIFT",	SDLK_RSHIFT},
-	{"KLSHIFT",	SDLK_LSHIFT},
-	{"KRCTRL",	SDLK_RCTRL},
-	{"KLCTRL",	SDLK_LCTRL},
-	{"KRALT",	SDLK_RALT},
-	{"KLALT",	SDLK_LALT},
-	{"KRMETA",	SDLK_RMETA},
-	{"KLMETA",	SDLK_LMETA},
-	{"KLSUPER",	SDLK_LSUPER},	/* Left "Windows" key */
-	{"KRSUPER",	SDLK_RSUPER},	/* Right "Windows" key */
-	{"KMODE",	SDLK_MODE},	/* "Alt Gr" key */
-	{"KCOMPOSE",	SDLK_COMPOSE},	/* Multi-key compose key */
-	/* Miscellaneous function keys */
-	{"KHELP",	SDLK_HELP},
-	{"KPRINT",	SDLK_PRINT},
-	{"KSYSREQ",	SDLK_SYSREQ},
-	{"KBREAK",	SDLK_BREAK},
-	{"KMENU",	SDLK_MENU},
-	{"KPOWER",	SDLK_POWER},	/* Power Macintosh power key */
-	{"KEURO",	SDLK_EURO},	/* Some european keyboards */
-	{"KUNDO",	SDLK_UNDO},	/* Atari keyboard has Undo */
-	{"KLAST",	SDLK_LAST},
+#define	ESDL_SDLK(x)	{"K"#x,		SDLK_##x},
+	ESDL_SDLK(UNKNOWN)
+	ESDL_SDLK(RETURN)
+	ESDL_SDLK(ESCAPE)
+	ESDL_SDLK(BACKSPACE)
+	ESDL_SDLK(TAB)
+	ESDL_SDLK(SPACE)
+	ESDL_SDLK(EXCLAIM)
+	ESDL_SDLK(QUOTEDBL)
+	ESDL_SDLK(HASH)
+	ESDL_SDLK(PERCENT)
+	ESDL_SDLK(DOLLAR)
+	ESDL_SDLK(AMPERSAND)
+	ESDL_SDLK(QUOTE)
+	ESDL_SDLK(LEFTPAREN)
+	ESDL_SDLK(RIGHTPAREN)
+	ESDL_SDLK(ASTERISK)
+	ESDL_SDLK(PLUS)
+	ESDL_SDLK(COMMA)
+	ESDL_SDLK(MINUS)
+	ESDL_SDLK(PERIOD)
+	ESDL_SDLK(SLASH)
+	ESDL_SDLK(0)
+	ESDL_SDLK(1)
+	ESDL_SDLK(2)
+	ESDL_SDLK(3)
+	ESDL_SDLK(4)
+	ESDL_SDLK(5)
+	ESDL_SDLK(6)
+	ESDL_SDLK(7)
+	ESDL_SDLK(8)
+	ESDL_SDLK(9)
+	ESDL_SDLK(COLON)
+	ESDL_SDLK(SEMICOLON)
+	ESDL_SDLK(LESS)
+	ESDL_SDLK(EQUALS)
+	ESDL_SDLK(GREATER)
+	ESDL_SDLK(QUESTION)
+	ESDL_SDLK(AT)
+	ESDL_SDLK(LEFTBRACKET)
+	ESDL_SDLK(BACKSLASH)
+	ESDL_SDLK(RIGHTBRACKET)
+	ESDL_SDLK(CARET)
+	ESDL_SDLK(UNDERSCORE)
+	ESDL_SDLK(BACKQUOTE)
+	ESDL_SDLK(a)
+	ESDL_SDLK(b)
+	ESDL_SDLK(c)
+	ESDL_SDLK(d)
+	ESDL_SDLK(e)
+	ESDL_SDLK(f)
+	ESDL_SDLK(g)
+	ESDL_SDLK(h)
+	ESDL_SDLK(i)
+	ESDL_SDLK(j)
+	ESDL_SDLK(k)
+	ESDL_SDLK(l)
+	ESDL_SDLK(m)
+	ESDL_SDLK(n)
+	ESDL_SDLK(o)
+	ESDL_SDLK(p)
+	ESDL_SDLK(q)
+	ESDL_SDLK(r)
+	ESDL_SDLK(s)
+	ESDL_SDLK(t)
+	ESDL_SDLK(u)
+	ESDL_SDLK(v)
+	ESDL_SDLK(w)
+	ESDL_SDLK(x)
+	ESDL_SDLK(y)
+	ESDL_SDLK(z)
+	ESDL_SDLK(CAPSLOCK)
+	ESDL_SDLK(F1)
+	ESDL_SDLK(F2)
+	ESDL_SDLK(F3)
+	ESDL_SDLK(F4)
+	ESDL_SDLK(F5)
+	ESDL_SDLK(F6)
+	ESDL_SDLK(F7)
+	ESDL_SDLK(F8)
+	ESDL_SDLK(F9)
+	ESDL_SDLK(F10)
+	ESDL_SDLK(F11)
+	ESDL_SDLK(F12)
+	ESDL_SDLK(PRINTSCREEN)
+	ESDL_SDLK(SCROLLLOCK)
+	ESDL_SDLK(PAUSE)
+	ESDL_SDLK(INSERT)
+	ESDL_SDLK(HOME)
+	ESDL_SDLK(PAGEUP)
+	ESDL_SDLK(DELETE)
+	ESDL_SDLK(END)
+	ESDL_SDLK(PAGEDOWN)
+	ESDL_SDLK(RIGHT)
+	ESDL_SDLK(LEFT)
+	ESDL_SDLK(DOWN)
+	ESDL_SDLK(UP)
+	ESDL_SDLK(NUMLOCKCLEAR)
+	ESDL_SDLK(KP_DIVIDE)
+	ESDL_SDLK(KP_MULTIPLY)
+	ESDL_SDLK(KP_MINUS)
+	ESDL_SDLK(KP_PLUS)
+	ESDL_SDLK(KP_ENTER)
+	ESDL_SDLK(KP_1)
+	ESDL_SDLK(KP_2)
+	ESDL_SDLK(KP_3)
+	ESDL_SDLK(KP_4)
+	ESDL_SDLK(KP_5)
+	ESDL_SDLK(KP_6)
+	ESDL_SDLK(KP_7)
+	ESDL_SDLK(KP_8)
+	ESDL_SDLK(KP_9)
+	ESDL_SDLK(KP_0)
+	ESDL_SDLK(KP_PERIOD)
+	ESDL_SDLK(APPLICATION)
+	ESDL_SDLK(POWER)
+	ESDL_SDLK(KP_EQUALS)
+	ESDL_SDLK(F13)
+	ESDL_SDLK(F14)
+	ESDL_SDLK(F15)
+	ESDL_SDLK(F16)
+	ESDL_SDLK(F17)
+	ESDL_SDLK(F18)
+	ESDL_SDLK(F19)
+	ESDL_SDLK(F20)
+	ESDL_SDLK(F21)
+	ESDL_SDLK(F22)
+	ESDL_SDLK(F23)
+	ESDL_SDLK(F24)
+	ESDL_SDLK(EXECUTE)
+	ESDL_SDLK(HELP)
+	ESDL_SDLK(MENU)
+	ESDL_SDLK(SELECT)
+	ESDL_SDLK(STOP)
+	ESDL_SDLK(AGAIN)
+	ESDL_SDLK(UNDO)
+	ESDL_SDLK(CUT)
+	ESDL_SDLK(COPY)
+	ESDL_SDLK(PASTE)
+	ESDL_SDLK(FIND)
+	ESDL_SDLK(MUTE)
+	ESDL_SDLK(VOLUMEUP)
+	ESDL_SDLK(VOLUMEDOWN)
+	ESDL_SDLK(KP_COMMA)
+	ESDL_SDLK(KP_EQUALSAS400)
+	ESDL_SDLK(ALTERASE)
+	ESDL_SDLK(SYSREQ)
+	ESDL_SDLK(CANCEL)
+	ESDL_SDLK(CLEAR)
+	ESDL_SDLK(PRIOR)
+	ESDL_SDLK(RETURN2)
+	ESDL_SDLK(SEPARATOR)
+	ESDL_SDLK(OUT)
+	ESDL_SDLK(OPER)
+	ESDL_SDLK(CLEARAGAIN)
+	ESDL_SDLK(CRSEL)
+	ESDL_SDLK(EXSEL)
+	ESDL_SDLK(KP_00)
+	ESDL_SDLK(KP_000)
+	ESDL_SDLK(THOUSANDSSEPARATOR)
+	ESDL_SDLK(DECIMALSEPARATOR)
+	ESDL_SDLK(CURRENCYUNIT)
+	ESDL_SDLK(CURRENCYSUBUNIT)
+	ESDL_SDLK(KP_LEFTPAREN)
+	ESDL_SDLK(KP_RIGHTPAREN)
+	ESDL_SDLK(KP_LEFTBRACE)
+	ESDL_SDLK(KP_RIGHTBRACE)
+	ESDL_SDLK(KP_TAB)
+	ESDL_SDLK(KP_BACKSPACE)
+	ESDL_SDLK(KP_A)
+	ESDL_SDLK(KP_B)
+	ESDL_SDLK(KP_C)
+	ESDL_SDLK(KP_D)
+	ESDL_SDLK(KP_E)
+	ESDL_SDLK(KP_F)
+	ESDL_SDLK(KP_XOR)
+	ESDL_SDLK(KP_POWER)
+	ESDL_SDLK(KP_PERCENT)
+	ESDL_SDLK(KP_LESS)
+	ESDL_SDLK(KP_GREATER)
+	ESDL_SDLK(KP_AMPERSAND)
+	ESDL_SDLK(KP_DBLAMPERSAND)
+	ESDL_SDLK(KP_VERTICALBAR)
+	ESDL_SDLK(KP_DBLVERTICALBAR)
+	ESDL_SDLK(KP_COLON)
+	ESDL_SDLK(KP_HASH)
+	ESDL_SDLK(KP_SPACE)
+	ESDL_SDLK(KP_AT)
+	ESDL_SDLK(KP_EXCLAM)
+	ESDL_SDLK(KP_MEMSTORE)
+	ESDL_SDLK(KP_MEMRECALL)
+	ESDL_SDLK(KP_MEMCLEAR)
+	ESDL_SDLK(KP_MEMADD)
+	ESDL_SDLK(KP_MEMSUBTRACT)
+	ESDL_SDLK(KP_MEMMULTIPLY)
+	ESDL_SDLK(KP_MEMDIVIDE)
+	ESDL_SDLK(KP_PLUSMINUS)
+	ESDL_SDLK(KP_CLEAR)
+	ESDL_SDLK(KP_CLEARENTRY)
+	ESDL_SDLK(KP_BINARY)
+	ESDL_SDLK(KP_OCTAL)
+	ESDL_SDLK(KP_DECIMAL)
+	ESDL_SDLK(KP_HEXADECIMAL)
+	ESDL_SDLK(LCTRL)
+	ESDL_SDLK(LSHIFT)
+	ESDL_SDLK(LALT)
+	ESDL_SDLK(LGUI)
+	ESDL_SDLK(RCTRL)
+	ESDL_SDLK(RSHIFT)
+	ESDL_SDLK(RALT)
+	ESDL_SDLK(RGUI)
+	ESDL_SDLK(MODE)
+	ESDL_SDLK(AUDIONEXT)
+	ESDL_SDLK(AUDIOPREV)
+	ESDL_SDLK(AUDIOSTOP)
+	ESDL_SDLK(AUDIOPLAY)
+	ESDL_SDLK(AUDIOMUTE)
+	ESDL_SDLK(MEDIASELECT)
+	ESDL_SDLK(WWW)
+	ESDL_SDLK(MAIL)
+	ESDL_SDLK(CALCULATOR)
+	ESDL_SDLK(COMPUTER)
+	ESDL_SDLK(AC_SEARCH)
+	ESDL_SDLK(AC_HOME)
+	ESDL_SDLK(AC_BACK)
+	ESDL_SDLK(AC_FORWARD)
+	ESDL_SDLK(AC_STOP)
+	ESDL_SDLK(AC_REFRESH)
+	ESDL_SDLK(AC_BOOKMARKS)
+	ESDL_SDLK(BRIGHTNESSDOWN)
+	ESDL_SDLK(BRIGHTNESSUP)
+	ESDL_SDLK(DISPLAYSWITCH)
+	ESDL_SDLK(KBDILLUMTOGGLE)
+	ESDL_SDLK(KBDILLUMDOWN)
+	ESDL_SDLK(KBDILLUMUP)
+	ESDL_SDLK(EJECT)
+	ESDL_SDLK(SLEEP)
+#undef	ESDL_SDLK
 
 	/* Keyboard modifiers (masks for or:ing) */
 	{"KMOD_NONE",		KMOD_NONE},
+	{"KMOD_SHIFT",		KMOD_SHIFT},
 	{"KMOD_LSHIFT",		KMOD_LSHIFT},
 	{"KMOD_RSHIFT",		KMOD_RSHIFT},
+	{"KMOD_CTRL",		KMOD_CTRL},
 	{"KMOD_LCTRL",		KMOD_LCTRL},
 	{"KMOD_RCTRL",		KMOD_RCTRL},
+	{"KMOD_ALT",		KMOD_ALT},
 	{"KMOD_LALT",		KMOD_LALT},
 	{"KMOD_RALT",		KMOD_RALT},
-	{"KMOD_LMETA",		KMOD_LMETA},
-	{"KMOD_RMETA",		KMOD_RMETA},
+	{"KMOD_GUI",		KMOD_GUI},
+	{"KMOD_LGUI",		KMOD_LGUI},
+	{"KMOD_RGUI",		KMOD_RGUI},
 	{"KMOD_NUM",		KMOD_NUM},
 	{"KMOD_CAPS",		KMOD_CAPS},
 	{"KMOD_MODE",		KMOD_MODE},
@@ -2288,8 +2221,6 @@ static const EEL_lconstexp esdl_constants[] =
 	{"BUTTON_LEFT",		SDL_BUTTON_LEFT},
 	{"BUTTON_MIDDLE",	SDL_BUTTON_MIDDLE},
 	{"BUTTON_RIGHT",	SDL_BUTTON_RIGHT},
-	{"BUTTON_WHEELUP",	SDL_BUTTON_WHEELUP},
-	{"BUTTON_WHEELDOWN",	SDL_BUTTON_WHEELDOWN},
 
 	/* Joystick hat positions */
 	{"HAT_LEFTUP",		SDL_HAT_LEFTUP},
@@ -2379,8 +2310,11 @@ EEL_xno eel_sdl_init(EEL_vm *vm)
 	eel_export_cfunction(m, 1, "LockSurface", 1, 0, 0, esdl_LockSurface);
 	eel_export_cfunction(m, 0, "UnlockSurface", 1, 0, 0,
 			esdl_UnlockSurface);
-	eel_export_cfunction(m, 0, "SetAlpha", 1, 2, 0, esdl_SetAlpha);
-	eel_export_cfunction(m, 0, "SetColorKey", 1, 2, 0, esdl_SetColorKey);
+	eel_export_cfunction(m, 0, "SetSurfaceAlphaMod", 1, 1, 0,
+			esdl_SetSurfaceAlphaMod);
+	eel_export_cfunction(m, 0, "SetSurfaceColorMod", 1, 3, 0,
+			esdl_SetSurfaceColorMod);
+	eel_export_cfunction(m, 0, "SetColorKey", 3, 0, 0, esdl_SetColorKey);
 	eel_export_cfunction(m, 1, "SetColors", 2, 1, 0, esdl_SetColors);
 
 	/* Timing */
@@ -2410,9 +2344,10 @@ EEL_xno eel_sdl_init(EEL_vm *vm)
 	eel_export_cfunction(m, 1, "PollEvent", 0, 0, 0, esdl_PollEvent);
 	eel_export_cfunction(m, 1, "WaitEvent", 0, 0, 0, esdl_WaitEvent);
 	eel_export_cfunction(m, 1, "EventState", 1, 1, 0, esdl_EventState);
-	eel_export_cfunction(m, 1, "EnableUNICODE", 1, 0, 0, esdl_EnableUNICODE);
-	eel_export_cfunction(m, 0, "EnableKeyRepeat", 2, 0, 0,
-			esdl_EnableKeyRepeat);
+	eel_export_cfunction(m, 0, "StartTextInput", 0, 0, 0,
+			esdl_StartTextInput);
+	eel_export_cfunction(m, 0, "StopTextInput", 0, 0, 0,
+			esdl_StopTextInput);
 
 	/* Simple audio interface */
 	eel_export_cfunction(m, 0, "OpenAudio", 3, 0, 0, esdl_OpenAudio);

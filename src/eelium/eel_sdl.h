@@ -102,55 +102,76 @@ EEL_xno eel_sdl_init(EEL_vm *vm);
 
 
 /* Argument handling macros */
-#define	ESDL_ARGS	EEL_value *args = vm->heap + vm->argv;
+#define	ESDL_ARG(i)	(vm->heap + vm->argv + (i))
 
-#define	ESDL_ARGDEF_INTEGER(n, i)	int n;
-#define	ESDL_ARG_INTEGER(n, i)						\
+#define ESDL_OPTIONAL(t, i, n, d)					\
 {									\
-	n = eel_v2l(args + i);						\
+	if(vm->argc > (i))						\
+		ESDL_ARG_##t(i, n)					\
+	else								\
+		n = d;							\
 }
 
-#define	ESDL_ARGDEF_STRING(n, i)	const char *n;
-#define	ESDL_ARG_STRING(n, i)						\
+#define ESDL_OPTIONAL_NIL(t, i, n, d)					\
 {									\
-	if(!(n = eel_v2s(args + i)))					\
+	if((vm->argc > (i)) && (EEL_TYPE(ESDL_ARG(i)) != EEL_TNIL))	\
+		ESDL_ARG_##t(i, n)					\
+	else								\
+		n = d;							\
+}
+
+#define	ESDL_ARG_INTEGER(i, n)						\
+{									\
+	n = eel_v2l(ESDL_ARG(i));					\
+}
+#define	ESDL_OPTARG_INTEGER(i, n, d)	ESDL_OPTIONAL(INTEGER, i, n, d)
+
+#define	ESDL_ARG_STRING(i, n)						\
+{									\
+	if(!(n = eel_v2s(ESDL_ARG(i))))					\
 		return EEL_XWRONGTYPE;					\
 }
+#define	ESDL_OPTARG_STRING(i, n, d)	ESDL_OPTIONAL(STRING, i, n, d)
+#define	ESDL_OPTARGNIL_STRING(i, n, d)	ESDL_OPTIONAL_NIL(STRING, i, n, d)
 
-#define	ESDL_ARGDEF_RECT(n, i)	SDL_Rect *n;
-#define	ESDL_ARG_RECT(n, i)						\
+#define	ESDL_ARG_RECT(i, n)						\
 {									\
-	if(EEL_TYPE(args + i) == esdl_md.rect_cid)			\
-		n = o2SDL_Rect(args[i].objref.v);			\
+	if(EEL_TYPE(ESDL_ARG(i)) == esdl_md.rect_cid)			\
+		n = o2SDL_Rect(ESDL_ARG(i)->objref.v);			\
 	else								\
 		return EEL_XWRONGTYPE;					\
 }
+#define	ESDL_OPTARG_RECT(i, n, d)	ESDL_OPTIONAL(RECT, i, n, d)
+#define	ESDL_OPTARGNIL_RECT(i, n, d)	ESDL_OPTIONAL_NIL(RECT, i, n, d)
 
-#define	ESDL_ARGDEF_SURFACE(n, i)	SDL_Surface *n;
-#define	ESDL_ARG_SURFACE(n, i)						\
+#define	ESDL_ARG_SURFACE(i, n)						\
 {									\
-	if(EEL_TYPE(args + i) == esdl_md.surface_cid)			\
-		n = o2ESDL_surface(args[i].objref.v)->surface;		\
+	if(EEL_TYPE(ESDL_ARG(i)) == esdl_md.surface_cid)		\
+		n = o2ESDL_surface(ESDL_ARG(i)->objref.v)->surface;	\
 	else								\
 		return EEL_XWRONGTYPE;					\
 }
+#define	ESDL_OPTARG_SURFACE(i, n, d)	ESDL_OPTIONAL(SURFACE, i, n, d)
+#define	ESDL_OPTARGNIL_SURFACE(i, n, d)	ESDL_OPTIONAL_NIL(SURFACE, i, n, d)
 
-#define	ESDL_ARGDEF_WINDOW(n, i)	SDL_Window *n;
-#define	ESDL_ARG_WINDOW(n, i)						\
+#define	ESDL_ARG_WINDOW(i, n)						\
 {									\
-	if(EEL_TYPE(args + i) == esdl_md.window_cid)			\
-		n = o2ESDL_window(args[i].objref.v)->window;		\
+	if(EEL_TYPE(ESDL_ARG(i)) == esdl_md.window_cid)			\
+		n = o2ESDL_window(ESDL_ARG(i)->objref.v)->window;	\
 	else								\
 		return EEL_XWRONGTYPE;					\
 }
+#define	ESDL_OPTARG_WINDOW(i, n, d)	ESDL_OPTIONAL(WINDOW, i, n, d)
+#define	ESDL_OPTARGNIL_WINDOW(i, n, d)	ESDL_OPTIONAL_NIL(WINDOW, i, n, d)
 
-#define	ESDL_ARGDEF_RENDERER(n, i)	SDL_Renderer *n;
-#define	ESDL_ARG_RENDERER(n, i)						\
+#define	ESDL_ARG_RENDERER(i, n)						\
 {									\
-	if(EEL_TYPE(args + i) == esdl_md.renderer_cid)			\
-		n = o2ESDL_renderer(args[i].objref.v)->renderer;	\
+	if(EEL_TYPE(ESDL_ARG(i)) == esdl_md.renderer_cid)		\
+		n = o2ESDL_renderer(ESDL_ARG(i)->objref.v)->renderer;	\
 	else								\
 		return EEL_XWRONGTYPE;					\
 }
+#define	ESDL_OPTARG_RENDERER(i, n, d)	ESDL_OPTIONAL(RENDERER, i, n, d)
+#define	ESDL_OPTARGNIL_RENDERER(i, n, d) ESDL_OPTIONAL_NIL(RENDERER, i, n, d)
 
 #endif /* EELIUM_SDL_H */
