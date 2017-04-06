@@ -99,8 +99,8 @@ if [ -e $MXEPATH ]; then
 	echo "Setting up build directories for MXE cross-compiling..."
 	echo "=========================================================="
 
-	setup_cross mingw-release Release "MXE cross" i686-w64-mingw32.shared
-	setup_cross mingw-debug Debug "MXE cross" i686-w64-mingw32.shared
+	setup_cross mingw-release Release "MXE cross" i686-w64-mingw32.static
+	setup_cross mingw-debug Debug "MXE cross" i686-w64-mingw32.static
 
 	echo
 	echo "=========================================================="
