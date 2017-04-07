@@ -899,14 +899,63 @@ static EEL_xno esdl_Delay(EEL_vm *vm)
 }
 
 
+static EEL_xno esdl_SetRenderDrawColor(EEL_vm *vm)
+{
+	SDL_Renderer *rn;
+	Uint8 r, g, b, a;
+	ESDL_ARG_RENDERER(0, rn)
+	ESDL_ARG_INTEGER(1, r)
+	ESDL_ARG_INTEGER(2, g)
+	ESDL_ARG_INTEGER(3, b)
+	ESDL_OPTARG_INTEGER(4, a, 255)
+	if(SDL_SetRenderDrawColor(rn, r, g, b, a) < 0)
+		return EEL_XDEVICECONTROL;
+	return 0;
+}
+
+
+static EEL_xno esdl_SetRenderDrawBlendMode(EEL_vm *vm)
+{
+	SDL_Renderer *rn;
+	SDL_BlendMode bm;
+	ESDL_ARG_RENDERER(0, rn)
+	ESDL_ARG_INTEGER(1, bm)
+	if(SDL_SetRenderDrawBlendMode(rn, bm) < 0)
+		return EEL_XDEVICECONTROL;
+	return 0;
+}
+
+
+static EEL_xno esdl_RenderDrawLine(EEL_vm *vm)
+{
+	SDL_Renderer *rn;
+	int x1, y1, x2, y2;
+	ESDL_ARG_RENDERER(0, rn)
+	ESDL_ARG_INTEGER(1, x1)
+	ESDL_ARG_INTEGER(2, y1)
+	ESDL_ARG_INTEGER(3, x2)
+	ESDL_ARG_INTEGER(4, y2)
+	if(SDL_RenderDrawLine(rn, x1, y1, x2, y2) < 0)
+		return EEL_XDEVICECONTROL;
+	return 0;
+}
+
+
+static EEL_xno esdl_RenderClear(EEL_vm *vm)
+{
+	SDL_Renderer *rn;
+	ESDL_ARG_RENDERER(0, rn)
+	if(SDL_RenderClear(rn) < 0)
+		return EEL_XDEVICECONTROL;
+	return 0;
+}
+
+
 static EEL_xno esdl_RenderPresent(EEL_vm *vm)
 {
-	EEL_value *args = vm->heap + vm->argv;
-	ESDL_renderer *rn;
-	if(EEL_TYPE(args) != esdl_md.renderer_cid)
-		return EEL_XWRONGTYPE;
-	rn = o2ESDL_renderer(args[0].objref.v);
-	SDL_RenderPresent(rn->renderer);
+	SDL_Renderer *rn;
+	ESDL_ARG_RENDERER(0, rn)
+	SDL_RenderPresent(rn);
 	return 0;
 }
 
@@ -1936,6 +1985,34 @@ static const EEL_lconstexp esdl_constants[] =
 	{"BIG_ENDIAN",	SDL_BIG_ENDIAN},
 	{"LIL_ENDIAN",	SDL_LIL_ENDIAN},
 
+	/* Flags for windows */
+	{"WINDOW_FULLSCREEN",		SDL_WINDOW_FULLSCREEN},
+	{"WINDOW_FULLSCREEN_DESKTOP",	SDL_WINDOW_FULLSCREEN_DESKTOP},
+	{"WINDOW_OPENGL",		SDL_WINDOW_OPENGL},
+	{"WINDOW_HIDDEN",		SDL_WINDOW_HIDDEN},
+	{"WINDOW_BORDERLESS",		SDL_WINDOW_BORDERLESS},
+	{"WINDOW_RESIZABLE",		SDL_WINDOW_RESIZABLE},
+	{"WINDOW_MINIMIZED",		SDL_WINDOW_MINIMIZED},
+	{"WINDOW_MAXIMIZED",		SDL_WINDOW_MAXIMIZED},
+	{"WINDOW_INPUT_GRABBED",	SDL_WINDOW_INPUT_GRABBED},
+	{"WINDOW_ALLOW_HIGHDPI",	SDL_WINDOW_ALLOW_HIGHDPI},
+
+	/* Special values for CreateWindow() */
+	{"WINDOWPOS_CENTERED",		SDL_WINDOWPOS_CENTERED},
+	{"WINDOWPOS_UNDEFINED",		SDL_WINDOWPOS_UNDEFINED},
+
+	/* Flags for CreateRenderer() */
+	{"RENDERER_SOFTWARE",		SDL_RENDERER_SOFTWARE},
+	{"RENDERER_ACCELERATED",	SDL_RENDERER_ACCELERATED},
+	{"RENDERER_PRESENTVSYNC",	SDL_RENDERER_PRESENTVSYNC},
+	{"RENDERER_TARGETTEXTURE",	SDL_RENDERER_TARGETTEXTURE},
+
+	/* Render blend modes */
+	{"BLENDMODE_NONE",	SDL_BLENDMODE_NONE},
+	{"BLENDMODE_BLEND",	SDL_BLENDMODE_BLEND},
+	{"BLENDMODE_ADD",	SDL_BLENDMODE_ADD},
+	{"BLENDMODE_MOD",	SDL_BLENDMODE_MOD},
+
 	/* Flags for Surface */
 	{"SWSURFACE",	SDL_SWSURFACE},
 
@@ -2291,13 +2368,23 @@ EEL_xno eel_sdl_init(EEL_vm *vm)
 	eel_set_metamethod(c, EEL_MM_GETINDEX, j_getindex);
 	esdl_md.joystick_cid = eel_class_typeid(c);
 
-	/* Windows and renderers */
-	eel_export_cfunction(m, 0, "RenderPresent", 1, 0, 0,
-			esdl_RenderPresent);
+	/* Windows */
 	eel_export_cfunction(m, 0, "SetWindowTitle", 2, 0, 0,
 			esdl_SetWindowTitle);
 	eel_export_cfunction(m, 0, "SetWindowGrab", 2, 0, 0,
 			esdl_SetWindowGrab);
+
+	/* Rendering */
+	eel_export_cfunction(m, 0, "SetRenderDrawColor", 4, 1, 0,
+			esdl_SetRenderDrawColor);
+	eel_export_cfunction(m, 0, "SetRenderDrawBlendMode", 2, 0, 0,
+			esdl_SetRenderDrawBlendMode);
+	eel_export_cfunction(m, 0, "RenderDrawLine", 5, 0, 0,
+			esdl_RenderDrawLine);
+	eel_export_cfunction(m, 0, "RenderClear", 1, 0, 0,
+			esdl_RenderClear);
+	eel_export_cfunction(m, 0, "RenderPresent", 1, 0, 0,
+			esdl_RenderPresent);
 
 	/* Surfaces */
 	eel_export_cfunction(m, 0, "SetClipRect", 0, 2, 0, esdl_SetClipRect);
