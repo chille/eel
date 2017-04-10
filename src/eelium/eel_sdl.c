@@ -779,6 +779,36 @@ static EEL_xno w_destruct(EEL_object *eo)
 }
 
 
+static EEL_xno w_getindex(EEL_object *eo, EEL_value *op1, EEL_value *op2)
+{
+	SDL_Window *win = o2ESDL_window(eo)->window;
+	const char *is = eel_v2s(op1);
+	if(!is)
+		return EEL_XWRONGTYPE;
+	if(strlen(is) != 1)
+		return EEL_XWRONGINDEX;
+	switch(is[0])
+	{
+	  case 'x':
+		SDL_GetWindowPosition(win, &op2->integer.v, NULL);
+		break;
+	  case 'y':
+		SDL_GetWindowPosition(win, NULL, &op2->integer.v);
+		break;
+	  case 'w':
+		SDL_GetWindowSize(win, &op2->integer.v, NULL);
+		break;
+	  case 'h':
+		SDL_GetWindowSize(win, NULL, &op2->integer.v);
+		break;
+	  default:
+		return EEL_XWRONGINDEX;
+	}
+	op2->type = EEL_TINTEGER;
+	return 0;
+}
+
+
 /*----------------------------------------------------------
 	Renderer class
 ----------------------------------------------------------*/
@@ -823,6 +853,76 @@ static EEL_xno rn_construct(EEL_vm *vm, EEL_types type,
 static EEL_xno rn_destruct(EEL_object *eo)
 {
 	SDL_DestroyRenderer(o2ESDL_renderer(eo)->renderer);
+	return 0;
+}
+
+
+/*----------------------------------------------------------
+	GLContext class
+----------------------------------------------------------*/
+
+static EEL_xno glc_construct(EEL_vm *vm, EEL_types type,
+		EEL_value *initv, int initc, EEL_value *result)
+{
+	ESDL_glcontext *glc;
+	EEL_object *eo;
+	ESDL_window *win;
+	switch(initc)
+	{
+	  case 1:
+		if(EEL_TYPE(initv) != esdl_md.window_cid)
+			return EEL_XWRONGTYPE;
+		win = o2ESDL_window(initv->objref.v);
+		break;
+	  default:
+		return EEL_XARGUMENTS;
+	}
+	if(!(eo = eel_o_alloc(vm, sizeof(ESDL_glcontext), type)))
+		return EEL_XMEMORY;
+	glc = o2ESDL_glcontext(eo);
+	if(!(glc->context = SDL_GL_CreateContext(win->window)))
+	{
+		eel_o_free(eo);
+		return EEL_XDEVICEOPEN;
+	}
+	eel_o2v(result, eo);
+	return 0;
+}
+
+
+static EEL_xno glc_destruct(EEL_object *eo)
+{
+	SDL_GL_DeleteContext(o2ESDL_glcontext(eo)->context);
+	return 0;
+}
+
+
+/*----------------------------------------------------------
+	OpenGL support calls
+----------------------------------------------------------*/
+
+static EEL_xno esdl_gl_setattribute(EEL_vm *vm)
+{
+	EEL_value *args = vm->heap + vm->argv;
+	int attr = eel_v2l(args);
+	if(attr == GL_DOUBLEBUFFER)
+		attr = SDL_GL_DOUBLEBUFFER;
+	SDL_GL_SetAttribute(attr, eel_v2l(args + 1));
+	return 0;
+}
+
+
+static EEL_xno esdl_gl_setswapinterval(EEL_vm *vm)
+{
+	SDL_GL_SetSwapInterval(eel_v2l(vm->heap + vm->argv));
+	return 0;
+}
+
+
+static EEL_xno esdl_gl_swapwindow(EEL_vm *vm)
+{
+	EEL_value *args = vm->heap + vm->argv;
+	SDL_GL_SwapWindow(o2ESDL_window(args->objref.v)->window);
 	return 0;
 }
 
@@ -1658,8 +1758,17 @@ static EEL_xno esdl_decode_event(EEL_vm *vm, SDL_Event *ev)
 	  case SDL_WINDOWEVENT:
 		esdl_seti(t, "windowID", ev->window.windowID);
 		esdl_seti(t, "event", ev->window.event);
-		esdl_seti(t, "data1", ev->window.data1);
-		esdl_seti(t, "data2", ev->window.data2);
+		switch(ev->window.event)
+		{
+		  case SDL_WINDOWEVENT_MOVED:
+			esdl_seti(t, "x", ev->window.data1);
+			esdl_seti(t, "y", ev->window.data2);
+			break;
+		  case SDL_WINDOWEVENT_RESIZED:
+			esdl_seti(t, "w", ev->window.data1);
+			esdl_seti(t, "h", ev->window.data2);
+			break;
+		}
 		break;
 	  case SDL_KEYDOWN:
 	  case SDL_KEYUP:
@@ -2031,6 +2140,28 @@ static const EEL_lconstexp esdl_constants[] =
 	{"QUIT",		SDL_QUIT},
 	{"USEREVENT",		SDL_USEREVENT},
 
+	/* WINDOWEVENT IDs */
+	{"WINDOWEVENT_SHOWN",		SDL_WINDOWEVENT_SHOWN},
+	{"WINDOWEVENT_HIDDEN",		SDL_WINDOWEVENT_HIDDEN},
+	{"WINDOWEVENT_EXPOSED",		SDL_WINDOWEVENT_EXPOSED},
+	{"WINDOWEVENT_MOVED",		SDL_WINDOWEVENT_MOVED},
+	{"WINDOWEVENT_RESIZED",		SDL_WINDOWEVENT_RESIZED},
+	{"WINDOWEVENT_SIZE_CHANGED",	SDL_WINDOWEVENT_SIZE_CHANGED},
+	{"WINDOWEVENT_MINIMIZED",	SDL_WINDOWEVENT_MINIMIZED},
+	{"WINDOWEVENT_MAXIMIZED",	SDL_WINDOWEVENT_MAXIMIZED},
+	{"WINDOWEVENT_RESTORED",	SDL_WINDOWEVENT_RESTORED},
+	{"WINDOWEVENT_ENTER",		SDL_WINDOWEVENT_ENTER},
+	{"WINDOWEVENT_LEAVE",		SDL_WINDOWEVENT_LEAVE},
+	{"WINDOWEVENT_FOCUS_GAINED",	SDL_WINDOWEVENT_FOCUS_GAINED},
+	{"WINDOWEVENT_FOCUS_LOST",	SDL_WINDOWEVENT_FOCUS_LOST},
+	{"WINDOWEVENT_CLOSE",		SDL_WINDOWEVENT_CLOSE},
+#ifdef SDL_WINDOWEVENT_TAKE_FOCUS
+	{"WINDOWEVENT_TAKE_FOCUS",	SDL_WINDOWEVENT_TAKE_FOCUS},
+#endif
+#ifdef SDL_WINDOWEVENT_HIT_TEST
+	{"WINDOWEVENT_HIT_TEST",	SDL_WINDOWEVENT_HIT_TEST},
+#endif
+
 	/* Symbolic key codes */
 #define	ESDL_SDLK(x)	{"K"#x,		SDLK_##x},
 	ESDL_SDLK(UNKNOWN)
@@ -2347,11 +2478,16 @@ EEL_xno eel_sdl_init(EEL_vm *vm)
 
 	c = eel_export_class(m, "Window", EEL_COBJECT,
 			w_construct, w_destruct, NULL);
+	eel_set_metamethod(c, EEL_MM_GETINDEX, w_getindex);
 	esdl_md.window_cid = eel_class_typeid(c);
 
 	c = eel_export_class(m, "Renderer", EEL_COBJECT,
 			rn_construct, rn_destruct, NULL);
 	esdl_md.renderer_cid = eel_class_typeid(c);
+
+	c = eel_export_class(m, "GLContext", EEL_COBJECT,
+			glc_construct, glc_destruct, NULL);
+	esdl_md.glcontext_cid = eel_class_typeid(c);
 
 	c = eel_export_class(m, "Surface", EEL_COBJECT,
 			s_construct, s_destruct, NULL);
@@ -2385,6 +2521,14 @@ EEL_xno eel_sdl_init(EEL_vm *vm)
 			esdl_RenderClear);
 	eel_export_cfunction(m, 0, "RenderPresent", 1, 0, 0,
 			esdl_RenderPresent);
+
+	/* OpenGL support */
+	eel_export_cfunction(m, 0, "GL_SetAttribute", 2, 0, 0,
+			esdl_gl_setattribute);
+	eel_export_cfunction(m, 0, "GL_SetSwapInterval", 1, 0, 0,
+			esdl_gl_setswapinterval);
+	eel_export_cfunction(m, 0, "GL_SwapWindow", 1, 0, 0,
+			esdl_gl_swapwindow);
 
 	/* Surfaces */
 	eel_export_cfunction(m, 0, "SetClipRect", 0, 2, 0, esdl_SetClipRect);

@@ -47,6 +47,14 @@ typedef struct
 EEL_MAKE_CAST(ESDL_renderer)
 
 
+/* OpenGL context */
+typedef struct
+{
+	SDL_GLContext	*context;
+} ESDL_glcontext;
+EEL_MAKE_CAST(ESDL_glcontext)
+
+
 /* Surface */
 typedef struct
 {
@@ -83,6 +91,7 @@ typedef struct
 	int		rect_cid;
 	int		window_cid;
 	int		renderer_cid;
+	int		glcontext_cid;
 	int		surface_cid;
 	int		surfacelock_cid;
 	int		joystick_cid;

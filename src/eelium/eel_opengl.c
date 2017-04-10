@@ -338,17 +338,6 @@ static EEL_xno gl_exceptions(EEL_vm *vm)
 }
 
 
-static EEL_xno gl_setattribute(EEL_vm *vm)
-{
-	EEL_value *args = vm->heap + vm->argv;
-	int attr = eel_v2l(args);
-	if(attr == GL_DOUBLEBUFFER)
-		attr = SDL_GL_DOUBLEBUFFER;
-	SDL_GL_SetAttribute(attr, eel_v2l(args + 1));
-	return 0;
-}
-
-
 static EEL_xno gl_perspective(EEL_vm *vm)
 {
 	EEL_value *args = vm->heap + vm->argv;
@@ -364,14 +353,6 @@ static EEL_xno gl_perspective(EEL_vm *vm)
 	xmax = ymax * aspect;
 	eelgl_md.Frustum(xmin, xmax, ymin, ymax, znear, zfar);
 	return glexception();
-}
-
-
-static EEL_xno gl_swapbuffers(EEL_vm *vm)
-{
-	EEL_value *args = vm->heap + vm->argv;
-	SDL_GL_SwapWindow(o2ESDL_window(args->objref.v)->window);
-	return 0;
 }
 
 
@@ -1675,9 +1656,7 @@ EEL_xno eel_gl_init(EEL_vm *vm)
 	/* Management and utilities */
 	eel_export_cfunction(m, 0, "Load", 0, 1, 0, gl_load);
 	eel_export_cfunction(m, 0, "Exceptions", 1, 0, 0, gl_exceptions);
-	eel_export_cfunction(m, 0, "SetAttribute", 2, 0, 0, gl_setattribute);
 	eel_export_cfunction(m, 0, "Perspective", 4, 0, 0, gl_perspective);
-	eel_export_cfunction(m, 0, "SwapBuffers", 0, 0, 0, gl_swapbuffers);
 	eel_export_cfunction(m, 1, "UploadTexture", 1, 2, 0, gl_uploadtexture);
 
 	/* Miscellaneous */
