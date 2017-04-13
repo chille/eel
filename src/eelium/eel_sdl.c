@@ -988,6 +988,32 @@ static EEL_xno rn_destruct(EEL_object *eo)
 }
 
 
+static EEL_xno rn_getindex(EEL_object *eo, EEL_value *op1, EEL_value *op2)
+{
+	SDL_Renderer *rn = o2ESDL_renderer(eo)->renderer;
+	const char *is = eel_v2s(op1);
+	if(!is)
+		return EEL_XWRONGTYPE;
+	if(strlen(is) != 1)
+		return EEL_XWRONGINDEX;
+	switch(is[0])
+	{
+	  case 'w':
+		if(SDL_GetRendererOutputSize(rn, &op2->integer.v, NULL) < 0)
+			return EEL_XDEVICEREAD;
+		break;
+	  case 'h':
+		if(SDL_GetRendererOutputSize(rn, NULL, &op2->integer.v) < 0)
+			return EEL_XDEVICEREAD;
+		break;
+	  default:
+		return EEL_XWRONGINDEX;
+	}
+	op2->type = EEL_TINTEGER;
+	return 0;
+}
+
+
 /*----------------------------------------------------------
 	GLContext class
 ----------------------------------------------------------*/
@@ -1135,10 +1161,27 @@ static EEL_xno esdl_SetRenderDrawColor(EEL_vm *vm)
 	SDL_Renderer *rn;
 	Uint8 r, g, b, a;
 	ESDL_ARG_RENDERER(0, rn)
-	ESDL_ARG_INTEGER(1, r)
-	ESDL_ARG_INTEGER(2, g)
-	ESDL_ARG_INTEGER(3, b)
-	ESDL_OPTARG_INTEGER(4, a, 255)
+	switch(vm->argc)
+	{
+	  case 2:
+	  {
+		Uint32 c;
+		ESDL_ARG_INTEGER(1, c)
+		r = c >> 16;
+		g = c >> 8;
+		b = c;
+		break;
+	  }
+	  case 4:
+	  case 5:
+		ESDL_ARG_INTEGER(1, r)
+		ESDL_ARG_INTEGER(2, g)
+		ESDL_ARG_INTEGER(3, b)
+		ESDL_OPTARG_INTEGER(4, a, 255)
+		break;
+	  default:
+		return EEL_XARGUMENTS;
+	}
 	if(SDL_SetRenderDrawColor(rn, r, g, b, a) < 0)
 		return EEL_XDEVICECONTROL;
 	return 0;
@@ -2793,6 +2836,7 @@ EEL_xno eel_sdl_init(EEL_vm *vm)
 
 	c = eel_export_class(m, "Renderer", EEL_COBJECT,
 			rn_construct, rn_destruct, NULL);
+	eel_set_metamethod(c, EEL_MM_GETINDEX, rn_getindex);
 	esdl_md.renderer_cid = eel_class_typeid(c);
 
 	c = eel_export_class(m, "GLContext", EEL_COBJECT,
@@ -2826,7 +2870,7 @@ EEL_xno eel_sdl_init(EEL_vm *vm)
 			esdl_SetWindowGrab);
 
 	/* Rendering */
-	eel_export_cfunction(m, 0, "SetRenderDrawColor", 4, 1, 0,
+	eel_export_cfunction(m, 0, "SetRenderDrawColor", 2, 3, 0,
 			esdl_SetRenderDrawColor);
 	eel_export_cfunction(m, 0, "SetRenderDrawBlendMode", 2, 0, 0,
 			esdl_SetRenderDrawBlendMode);
