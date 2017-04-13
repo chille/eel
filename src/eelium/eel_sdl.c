@@ -332,6 +332,101 @@ static EEL_xno r_setindex(EEL_object *eo, EEL_value *op1, EEL_value *op2)
 
 
 /*----------------------------------------------------------
+	Texture class
+----------------------------------------------------------*/
+static EEL_xno tx_construct(EEL_vm *vm, EEL_types type,
+		EEL_value *initv, int initc, EEL_value *result)
+{
+	SDL_Texture *texture = NULL;
+	ESDL_texture *tx;
+	EEL_object *eo;
+	SDL_Renderer *renderer;
+	if(initc < 1)
+		return EEL_XARGUMENTS;
+	if(EEL_TYPE(initv) != esdl_md.renderer_cid)
+		return EEL_XWRONGTYPE;
+	renderer = o2ESDL_renderer(initv[0].objref.v)->renderer;
+	switch(initc)
+	{
+	  case 5:	/* renderer, format, access, width, height */
+	  {
+		Uint32 format = eel_v2l(initv + 1);
+		int access = eel_v2l(initv + 2);
+		int w = eel_v2l(initv + 3);
+		int h = eel_v2l(initv + 4);
+		texture = SDL_CreateTexture(renderer, format, access, w, h);
+		break;
+	  }
+	  case 2:	/* renderer, surface */
+		if(EEL_TYPE(initv + 1) != esdl_md.surface_cid)
+			return EEL_XWRONGTYPE;
+		texture = SDL_CreateTextureFromSurface(renderer,
+				o2ESDL_surface(initv[1].objref.v)->surface);
+		break;
+	  default:
+		return EEL_XARGUMENTS;
+	}
+	if(!texture)
+		return EEL_XDEVICEERROR;
+	eo = eel_o_alloc(vm, sizeof(ESDL_texture), type);
+	if(!eo)
+		return EEL_XMEMORY;
+	tx = o2ESDL_texture(eo);
+	tx->texture = texture;
+	eel_o2v(result, eo);
+	return 0;
+}
+
+
+static EEL_xno tx_destruct(EEL_object *eo)
+{
+	SDL_DestroyTexture(o2ESDL_texture(eo)->texture);
+	return 0;
+}
+
+
+static EEL_xno tx_getindex(EEL_object *eo, EEL_value *op1, EEL_value *op2)
+{
+	SDL_Texture *tx = o2ESDL_texture(eo)->texture;
+	const char *is = eel_v2s(op1);
+	if(!is)
+		return EEL_XWRONGTYPE;
+	if(strlen(is) == 1)
+		switch(is[0])
+		{
+		  case 'w':
+			if(SDL_QueryTexture(tx, NULL, NULL,
+					&op2->integer.v, NULL) < 0)
+				return EEL_XDEVICEREAD;
+			break;
+		  case 'h':
+			if(SDL_QueryTexture(tx, NULL, NULL, NULL,
+					&op2->integer.v) < 0)
+				return EEL_XDEVICEREAD;
+			break;
+		  default:
+			return EEL_XWRONGINDEX;
+		}
+	else if(!strcmp(is, "format"))
+	{
+		Uint32 fmt;
+		if(SDL_QueryTexture(tx, &fmt, NULL, NULL, NULL) < 0)
+			return EEL_XDEVICEREAD;
+		op2->integer.v = fmt;
+	}
+	else if(!strcmp(is, "access"))
+	{
+		if(SDL_QueryTexture(tx, NULL, &op2->integer.v, NULL, NULL) < 0)
+			return EEL_XDEVICEREAD;
+	}
+	else
+		return EEL_XWRONGINDEX;
+	op2->type = EEL_TINTEGER;
+	return 0;
+}
+
+
+/*----------------------------------------------------------
 	Surface class
 ----------------------------------------------------------*/
 static EEL_xno s_construct(EEL_vm *vm, EEL_types type,
@@ -785,6 +880,24 @@ static EEL_xno w_getindex(EEL_object *eo, EEL_value *op1, EEL_value *op2)
 	const char *is = eel_v2s(op1);
 	if(!is)
 		return EEL_XWRONGTYPE;
+	if(!strcmp(is, "surface"))
+	{
+		ESDL_surface *s;
+		EEL_object *so = eel_o_alloc(eo->vm, sizeof(ESDL_surface),
+				esdl_md.surface_cid);
+		if(!so)
+			return EEL_XMEMORY;
+		s = o2ESDL_surface(so);
+		s->is_window_surface = 1;
+		s->surface = SDL_GetWindowSurface(win);
+		if(!s->surface)
+		{
+			eel_o_free(so);
+			return EEL_XDEVICEOPEN;
+		}
+		eel_o2v(op2, so);
+		return 0;
+	}
 	if(strlen(is) != 1)
 		return EEL_XWRONGINDEX;
 	switch(is[0])
@@ -821,6 +934,24 @@ static EEL_xno rn_construct(EEL_vm *vm, EEL_types type,
 	ESDL_window *win;
 	int drv = -1;
 	Uint32 flags = 0;
+
+	/* SDL_CreateSoftwareRenderer() */
+	if((initc == 1) && (EEL_TYPE(initv) == esdl_md.surface_cid))
+	{
+		SDL_Surface *s = o2ESDL_surface(initv->objref.v)->surface;
+		if(!(eo = eel_o_alloc(vm, sizeof(ESDL_renderer), type)))
+			return EEL_XMEMORY;
+		r = o2ESDL_renderer(eo);
+		if(!(r->renderer = SDL_CreateSoftwareRenderer(s)))
+		{
+			eel_o_free(eo);
+			return EEL_XDEVICEOPEN;
+		}
+		eel_o2v(result, eo);
+		return 0;
+	}
+
+	/* SDL_CreateRenderer() */
 	switch(initc)
 	{
 	  case 3:
@@ -1051,6 +1182,107 @@ static EEL_xno esdl_RenderClear(EEL_vm *vm)
 }
 
 
+static EEL_xno esdl_RenderFillRect(EEL_vm *vm)
+{
+	EEL_value *args = vm->heap + vm->argv;
+	SDL_Renderer *rn;
+	ESDL_ARG_RENDERER(0, rn)
+	if(vm->argc == 1)
+	{
+		if(SDL_RenderFillRect(rn, NULL) < 0)
+			return EEL_XDEVICECONTROL;
+		return 0;
+	}
+	if(EEL_TYPE(args + 1) == esdl_md.rect_cid)
+	{
+		if(SDL_RenderFillRect(rn, o2SDL_Rect(args[1].objref.v)) < 0)
+			return EEL_XDEVICECONTROL;
+	}
+	else if((EEL_classes)EEL_TYPE(args + 1) == EEL_CARRAY)
+	{
+		int i, len;
+		EEL_value v;
+		EEL_object *a = args[1].objref.v;
+		SDL_Rect *ra;
+		len = eel_length(a);
+		if(len < 0)
+			return EEL_XCANTINDEX;
+		ra = eel_malloc(vm, len * sizeof(SDL_Rect));
+		if(!ra)
+			return EEL_XMEMORY;
+		for(i = 0; i < len; ++i)
+		{
+			EEL_xno x = eel_getlindex(a, i, &v);
+			if(x)
+			{
+				eel_free(vm, ra);
+				return x;
+			}
+			if(EEL_TYPE(&v) != esdl_md.rect_cid)
+			{
+				eel_v_disown(&v);
+				continue;	/* Ignore... */
+			}
+			ra[i] = *o2SDL_Rect(v.objref.v);
+			eel_disown(v.objref.v);
+		}
+		SDL_RenderFillRects(rn, ra, len);
+		eel_free(vm, ra);
+	}
+	else
+		return EEL_XWRONGTYPE;
+	return 0;
+}
+
+
+static EEL_xno esdl_RenderCopy(EEL_vm *vm)
+{
+	SDL_Renderer *rn;
+	SDL_Texture *tx;
+	SDL_Rect *srcr, *dstr;
+	ESDL_ARG_RENDERER(0, rn)
+	ESDL_ARG_TEXTURE(1, tx)
+	ESDL_OPTARGNIL_RECT(2, srcr, NULL)
+	ESDL_OPTARGNIL_RECT(3, dstr, NULL)
+	if(vm->argc <= 4)
+	{
+		if(SDL_RenderCopy(rn, tx, srcr, dstr) < 0)
+			return EEL_XDEVICECONTROL;
+	}
+	else
+	{
+		double a;
+		SDL_Point p;
+		SDL_Point *pp;
+		int flip;
+		ESDL_OPTARG_REAL(4, a, 0.0f)
+		ESDL_OPTARGNIL_INTEGER(5, p.x, 999999)
+		ESDL_OPTARGNIL_INTEGER(6, p.y, 999999)
+		ESDL_OPTARGNIL_INTEGER(7, flip, SDL_FLIP_NONE)
+		if((p.x == 999999) && (p.y == 999999))
+			pp = NULL;
+		else
+		{
+			pp = &p;
+			if((p.x == 999999) || (p.y == 999999))
+			{
+				int w, h;
+				if(SDL_QueryTexture(tx, NULL, NULL,
+						&w, &h) < 0)
+					return EEL_XDEVICEREAD;
+				if(p.x == 999999)
+					p.x = w / 2;
+				if(p.y == 999999)
+					p.y = h / 2;
+			}
+		}
+		if(SDL_RenderCopyEx(rn, tx, srcr, dstr, a, pp, flip) < 0)
+			return EEL_XDEVICECONTROL;
+	}
+	return 0;
+}
+
+
 static EEL_xno esdl_RenderPresent(EEL_vm *vm)
 {
 	SDL_Renderer *rn;
@@ -1081,39 +1313,22 @@ static EEL_xno esdl_SetClipRect(EEL_vm *vm)
 
 static EEL_xno esdl_UpdateWindowSurface(EEL_vm *vm)
 {
-	EEL_value *args = vm->heap + vm->argv;
-	ESDL_window *win;
-	if(EEL_TYPE(args) != esdl_md.window_cid)
-		return EEL_XWRONGTYPE;
-	win = o2ESDL_window(args[0].objref.v);
-	if(SDL_UpdateWindowSurface(win->window) < 0)
-		return EEL_XDEVICECONTROL;
-	return 0;
-}
-
-
-static EEL_xno esdl_UpdateWindowSurfaceRects(EEL_vm *vm)
-{
 	EEL_xno x;
 	EEL_value *args = vm->heap + vm->argv;
-	ESDL_window *win;
-	if(EEL_TYPE(args) != esdl_md.window_cid)
-		return EEL_XWRONGTYPE;
-	win = o2ESDL_window(args[0].objref.v);
-#if 0
-	SDL_Rect cr;
-	cr.x = 0;
-	cr.y = 0;
-	cr.w = s->w;
-	cr.h = s->h;
-#endif
+	SDL_Window *win;
+	ESDL_ARG_WINDOW(0, win)
+	if(vm->argc == 1)
+	{
+		if(SDL_UpdateWindowSurface(win) < 0)
+			return EEL_XDEVICECONTROL;
+		return 0;
+	}
 	if(EEL_TYPE(args + 1) == esdl_md.rect_cid)
 	{
-		SDL_Rect r = *o2SDL_Rect(args[1].objref.v);
-#if 0
-		clip_rect(&r, &cr);
-#endif
-		SDL_UpdateWindowSurfaceRects(win->window, &r, 1);
+		if(SDL_UpdateWindowSurfaceRects(win,
+				o2SDL_Rect(args[1].objref.v), 1) < 0)
+			return EEL_XDEVICECONTROL;
+		return 0;
 	}
 	else if((EEL_classes)EEL_TYPE(args + 1) == EEL_CARRAY)
 	{
@@ -1141,12 +1356,9 @@ static EEL_xno esdl_UpdateWindowSurfaceRects(EEL_vm *vm)
 				continue;	/* Ignore... */
 			}
 			ra[i] = *o2SDL_Rect(v.objref.v);
-#if 0
-			clip_rect(&ra[i], &cr);
-#endif
 			eel_disown(v.objref.v);
 		}
-		SDL_UpdateWindowSurfaceRects(win->window, ra, len);
+		SDL_UpdateWindowSurfaceRects(win, ra, len);
 		eel_free(vm, ra);
 	}
 	else
@@ -1160,9 +1372,9 @@ static EEL_xno esdl_BlitSurface(EEL_vm *vm)
 	SDL_Surface *from, *to;
 	SDL_Rect *fromr, *tor;
 	ESDL_ARG_SURFACE(0, from)
-	ESDL_ARG_RECT(1, fromr)
+	ESDL_OPTARGNIL_RECT(1, fromr, NULL)
 	ESDL_ARG_SURFACE(2, to)
-	ESDL_OPTARG_RECT(3, tor, NULL)
+	ESDL_OPTARGNIL_RECT(3, tor, NULL)
 	switch(SDL_BlitSurface(from, fromr, to, tor))
 	{
 	  case -1:
@@ -1176,14 +1388,54 @@ static EEL_xno esdl_BlitSurface(EEL_vm *vm)
 
 static EEL_xno esdl_FillRect(EEL_vm *vm)
 {
+	EEL_value *args = vm->heap + vm->argv;
 	SDL_Surface *to;
-	SDL_Rect *tor;
 	int color;
 	ESDL_ARG_SURFACE(0, to)
-	ESDL_OPTARGNIL_RECT(1, tor, NULL)
 	ESDL_OPTARG_INTEGER(2, color, 0)
-	if(SDL_FillRect(to, tor, color) < 0)
-		return EEL_XDEVICEWRITE;
+	if(EEL_TYPE(args + 1) == esdl_md.rect_cid)
+	{
+		SDL_Rect *tor;
+		ESDL_ARG_RECT(1, tor)
+		if(SDL_FillRect(to, tor, color) < 0)
+			return EEL_XDEVICEWRITE;
+		return 0;
+	}
+	else if((EEL_classes)EEL_TYPE(args + 1) == EEL_CARRAY)
+	{
+		int i, len;
+		EEL_value v;
+		EEL_object *a = args[1].objref.v;
+		SDL_Rect *ra;
+		len = eel_length(a);
+		if(len < 0)
+			return EEL_XCANTINDEX;
+		ra = eel_malloc(vm, len * sizeof(SDL_Rect));
+		if(!ra)
+			return EEL_XMEMORY;
+		for(i = 0; i < len; ++i)
+		{
+			EEL_xno x = eel_getlindex(a, i, &v);
+			if(x)
+			{
+				eel_free(vm, ra);
+				return x;
+			}
+			if(EEL_TYPE(&v) != esdl_md.rect_cid)
+			{
+				eel_v_disown(&v);
+				continue;	/* Ignore... */
+			}
+			ra[i] = *o2SDL_Rect(v.objref.v);
+			eel_disown(v.objref.v);
+		}
+		i = SDL_FillRects(to, ra, len, color);
+		eel_free(vm, ra);
+		if(i < 0)
+			return EEL_XDEVICEWRITE;
+	}
+	else
+		return EEL_XWRONGTYPE;
 	return 0;
 }
 
@@ -2125,6 +2377,68 @@ static const EEL_lconstexp esdl_constants[] =
 	/* Flags for Surface */
 	{"SWSURFACE",	SDL_SWSURFACE},
 
+	/* Texture pixel formats */
+	{"PIXELFORMAT_UNKNOWN",		SDL_PIXELFORMAT_UNKNOWN},
+	{"PIXELFORMAT_INDEX1LSB",	SDL_PIXELFORMAT_INDEX1LSB},
+	{"PIXELFORMAT_INDEX1MSB",	SDL_PIXELFORMAT_INDEX1MSB},
+	{"PIXELFORMAT_INDEX4LSB",	SDL_PIXELFORMAT_INDEX4LSB},
+	{"PIXELFORMAT_INDEX4MSB",	SDL_PIXELFORMAT_INDEX4MSB},
+	{"PIXELFORMAT_INDEX8",		SDL_PIXELFORMAT_INDEX8},
+	{"PIXELFORMAT_RGB332",		SDL_PIXELFORMAT_RGB332},
+	{"PIXELFORMAT_RGB444",		SDL_PIXELFORMAT_RGB444},
+	{"PIXELFORMAT_RGB555",		SDL_PIXELFORMAT_RGB555},
+	{"PIXELFORMAT_BGR555",		SDL_PIXELFORMAT_BGR555},
+	{"PIXELFORMAT_ARGB4444",	SDL_PIXELFORMAT_ARGB4444},
+	{"PIXELFORMAT_RGBA4444",	SDL_PIXELFORMAT_RGBA4444},
+	{"PIXELFORMAT_ABGR4444",	SDL_PIXELFORMAT_ABGR4444},
+	{"PIXELFORMAT_BGRA4444",	SDL_PIXELFORMAT_BGRA4444},
+	{"PIXELFORMAT_ARGB1555",	SDL_PIXELFORMAT_ARGB1555},
+	{"PIXELFORMAT_RGBA5551",	SDL_PIXELFORMAT_RGBA5551},
+	{"PIXELFORMAT_ABGR1555",	SDL_PIXELFORMAT_ABGR1555},
+	{"PIXELFORMAT_BGRA5551",	SDL_PIXELFORMAT_BGRA5551},
+	{"PIXELFORMAT_RGB565",		SDL_PIXELFORMAT_RGB565},
+	{"PIXELFORMAT_BGR565",		SDL_PIXELFORMAT_BGR565},
+	{"PIXELFORMAT_RGB24",		SDL_PIXELFORMAT_RGB24},
+	{"PIXELFORMAT_BGR24",		SDL_PIXELFORMAT_BGR24},
+	{"PIXELFORMAT_RGB888",		SDL_PIXELFORMAT_RGB888},
+	{"PIXELFORMAT_RGBX8888",	SDL_PIXELFORMAT_RGBX8888},
+	{"PIXELFORMAT_BGR888",		SDL_PIXELFORMAT_BGR888},
+	{"PIXELFORMAT_BGRX8888",	SDL_PIXELFORMAT_BGRX8888},
+	{"PIXELFORMAT_ARGB8888",	SDL_PIXELFORMAT_ARGB8888},
+	{"PIXELFORMAT_RGBA8888",	SDL_PIXELFORMAT_RGBA8888},
+	{"PIXELFORMAT_ABGR8888",	SDL_PIXELFORMAT_ABGR8888},
+	{"PIXELFORMAT_BGRA8888",	SDL_PIXELFORMAT_BGRA8888},
+	{"PIXELFORMAT_ARGB2101010",	SDL_PIXELFORMAT_ARGB2101010},
+#ifdef SDL_PIXELFORMAT_RGBA32
+	{"PIXELFORMAT_RGBA32",		SDL_PIXELFORMAT_RGBA32},
+	{"PIXELFORMAT_ARGB32",		SDL_PIXELFORMAT_ARGB32},
+	{"PIXELFORMAT_BGRA32",		SDL_PIXELFORMAT_BGRA32},
+	{"PIXELFORMAT_ABGR32",		SDL_PIXELFORMAT_ABGR32},
+#endif
+	{"PIXELFORMAT_YV12",		SDL_PIXELFORMAT_YV12},
+	{"PIXELFORMAT_IYUV",		SDL_PIXELFORMAT_IYUV},
+	{"PIXELFORMAT_YUY2",		SDL_PIXELFORMAT_YUY2},
+	{"PIXELFORMAT_UYVY",		SDL_PIXELFORMAT_UYVY},
+	{"PIXELFORMAT_YVYU",		SDL_PIXELFORMAT_YVYU},
+#ifdef SDL_PIXELFORMAT_NV12
+	{"PIXELFORMAT_NV12",		SDL_PIXELFORMAT_NV12},
+	{"PIXELFORMAT_NV21",		SDL_PIXELFORMAT_NV21},
+#endif
+
+	/* Texture access modes */
+	{"TEXTUREACCESS_STATIC",	SDL_TEXTUREACCESS_STATIC},
+	{"TEXTUREACCESS_STREAMING",	SDL_TEXTUREACCESS_STREAMING},
+	{"TEXTUREACCESS_TARGET",	SDL_TEXTUREACCESS_TARGET},
+
+	/* Flip actions for RenderCopy() */
+	{"FLIP_NONE",		SDL_FLIP_NONE},
+	{"FLIP_HORIZONTAL",	SDL_FLIP_HORIZONTAL},
+	{"FLIP_VERTICAL",	SDL_FLIP_VERTICAL},
+
+	/* Alpha constants */
+	{"ALPHA_TRANSPARENT",	SDL_ALPHA_TRANSPARENT},
+	{"ALPHA_OPAQUE",	SDL_ALPHA_OPAQUE},
+
 	/* SDL event types */
 	{"WINDOWEVENT",		SDL_WINDOWEVENT},
 	{"KEYDOWN",		SDL_KEYDOWN},
@@ -2447,10 +2761,6 @@ static const EEL_lconstexp esdl_constants[] =
 	{"ENABLE",	SDL_ENABLE},
 	{"QUERY",	SDL_QUERY},
 
-	/* Alpha constants */
-	{"ALPHA_TRANSPARENT",	SDL_ALPHA_TRANSPARENT},
-	{"ALPHA_OPAQUE",	SDL_ALPHA_OPAQUE},
-
 	{NULL, 0}
 };
 
@@ -2489,6 +2799,11 @@ EEL_xno eel_sdl_init(EEL_vm *vm)
 			glc_construct, glc_destruct, NULL);
 	esdl_md.glcontext_cid = eel_class_typeid(c);
 
+	c = eel_export_class(m, "Texture", EEL_COBJECT,
+			tx_construct, tx_destruct, NULL);
+	eel_set_metamethod(c, EEL_MM_GETINDEX, tx_getindex);
+	esdl_md.texture_cid = eel_class_typeid(c);
+
 	c = eel_export_class(m, "Surface", EEL_COBJECT,
 			s_construct, s_destruct, NULL);
 	eel_set_metamethod(c, EEL_MM_GETINDEX, s_getindex);
@@ -2519,6 +2834,10 @@ EEL_xno eel_sdl_init(EEL_vm *vm)
 			esdl_RenderDrawLine);
 	eel_export_cfunction(m, 0, "RenderClear", 1, 0, 0,
 			esdl_RenderClear);
+	eel_export_cfunction(m, 0, "RenderFillRect", 1, 1, 0,
+			esdl_RenderFillRect);
+	eel_export_cfunction(m, 0, "RenderCopy", 2, 5, 0,
+			esdl_RenderCopy);
 	eel_export_cfunction(m, 0, "RenderPresent", 1, 0, 0,
 			esdl_RenderPresent);
 
@@ -2532,10 +2851,8 @@ EEL_xno eel_sdl_init(EEL_vm *vm)
 
 	/* Surfaces */
 	eel_export_cfunction(m, 0, "SetClipRect", 0, 2, 0, esdl_SetClipRect);
-	eel_export_cfunction(m, 0, "UpdateWindowSurface", 1, 0, 0,
+	eel_export_cfunction(m, 0, "UpdateWindowSurface", 1, 1, 0,
 			esdl_UpdateWindowSurface);
-	eel_export_cfunction(m, 0, "UpdateWindowSurfaceRects", 2, 0, 0,
-			esdl_UpdateWindowSurfaceRects);
 	eel_export_cfunction(m, 0, "BlitSurface", 3, 1, 0, esdl_BlitSurface);
 	eel_export_cfunction(m, 0, "FillRect", 1, 2, 0, esdl_FillRect);
 	eel_export_cfunction(m, 1, "LockSurface", 1, 0, 0, esdl_LockSurface);

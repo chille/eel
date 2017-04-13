@@ -119,7 +119,6 @@ procedure draw
 
 export function main<args>
 {
-	local bpp = 0;
 	local flags = SDL.WINDOW_OPENGL | SDL.WINDOW_RESIZABLE;
 	Load();
 	local window = SDL.Window ["OpenGL Test",
