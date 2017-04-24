@@ -163,6 +163,10 @@ EEL_MAKE_CAST(ESDL_texture)
 		return EEL_XWRONGTYPE;					\
 }
 
+#define	ESDL_OPTARG_TEXTURE(i, n, d)	ESDL_OPTIONAL(TEXTURE, i, n, d)
+
+#define	ESDL_OPTARGNIL_TEXTURE(i, n, d)	ESDL_OPTIONAL_NIL(TEXTURE, i, n, d)
+
 
 /* Surface */
 typedef struct

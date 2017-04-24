@@ -1156,6 +1156,18 @@ static EEL_xno esdl_Delay(EEL_vm *vm)
 }
 
 
+static EEL_xno esdl_SetRenderTarget(EEL_vm *vm)
+{
+	SDL_Renderer *rn;
+	SDL_Texture *tx;
+	ESDL_ARG_RENDERER(0, rn)
+	ESDL_OPTARGNIL_TEXTURE(1, tx, NULL)
+	if(SDL_SetRenderTarget(rn, tx) < 0)
+		return EEL_XDEVICECONTROL;
+	return 0;
+}
+
+
 static EEL_xno esdl_SetRenderDrawColor(EEL_vm *vm)
 {
 	SDL_Renderer *rn;
@@ -1200,17 +1212,153 @@ static EEL_xno esdl_SetRenderDrawBlendMode(EEL_vm *vm)
 }
 
 
+static EEL_xno esdl_RenderDrawPoint(EEL_vm *vm)
+{
+	SDL_Renderer *rn;
+	ESDL_ARG_RENDERER(0, rn)
+	if(vm->argc == 3)
+	{
+		// (renderer, x, y)
+		int x, y;
+		ESDL_ARG_INTEGER(1, x)
+		ESDL_ARG_INTEGER(2, y)
+		if(SDL_RenderDrawPoint(rn, x, y) < 0)
+			return EEL_XDEVICECONTROL;
+	}
+	else if((vm->argc >= 5) && (vm->argc & 1))
+	{
+		// (renderer)<x, y>
+		int i;
+		int n = (vm->argc - 1) >> 1;
+		SDL_Point *points = (SDL_Point *)eel_scratch(vm,
+				sizeof(SDL_Point) * n);
+		if(!points)
+			return EEL_XMEMORY;
+		for(i = 0; i < n; ++i)
+		{
+			ESDL_ARG_INTEGER((i << 1) + 1, points[i].x)
+			ESDL_ARG_INTEGER((i << 1) + 2, points[i].y)
+		}
+		if(SDL_RenderDrawPoints(rn, points, n) < 0)
+			return EEL_XDEVICECONTROL;
+	}
+	else if(vm->argc == 2)
+	{
+		// (renderer, indexable of <x, y>  tuples)
+		// TODO: Optimizations for vector_s32 and maybe others
+		EEL_value *args = vm->heap + vm->argv;
+		int i;
+		EEL_value iv;
+		EEL_object *a;
+		SDL_Point *points;
+		int n;
+		if(!EEL_IS_OBJREF(args[1].type))
+			return EEL_XCANTINDEX;
+		a = args[1].objref.v;
+		n = eel_length(a);
+		if(n & 1)
+			return EEL_XNEEDEVEN;
+		n >>= 1;
+		points = (SDL_Point *)eel_scratch(vm, sizeof(SDL_Point) * n);
+		if(!points)
+			return EEL_XMEMORY;
+		eel_l2v(&iv, 0);
+		for(i = 0; i < n; ++i)
+		{
+			EEL_value v;
+			EEL_xno x;
+			iv.integer.v = i << 1;
+			if((x = eel_o_metamethod(a, EEL_MM_GETINDEX, &iv, &v)))
+				return x;
+			points[i].x = eel_v2l(&v);
+			eel_v_disown(&v);
+			++iv.integer.v;
+			if((x = eel_o_metamethod(a, EEL_MM_GETINDEX, &iv, &v)))
+				return x;
+			points[i].y = eel_v2l(&v);
+			eel_v_disown(&v);
+		}
+		if(SDL_RenderDrawPoints(rn, points, n) < 0)
+			return EEL_XDEVICECONTROL;
+	}
+	else
+		return EEL_XARGUMENTS;
+	return 0;
+}
+
+
 static EEL_xno esdl_RenderDrawLine(EEL_vm *vm)
 {
 	SDL_Renderer *rn;
-	int x1, y1, x2, y2;
 	ESDL_ARG_RENDERER(0, rn)
-	ESDL_ARG_INTEGER(1, x1)
-	ESDL_ARG_INTEGER(2, y1)
-	ESDL_ARG_INTEGER(3, x2)
-	ESDL_ARG_INTEGER(4, y2)
-	if(SDL_RenderDrawLine(rn, x1, y1, x2, y2) < 0)
-		return EEL_XDEVICECONTROL;
+	if(vm->argc == 5)
+	{
+		int x1, y1, x2, y2;
+		ESDL_ARG_INTEGER(1, x1)
+		ESDL_ARG_INTEGER(2, y1)
+		ESDL_ARG_INTEGER(3, x2)
+		ESDL_ARG_INTEGER(4, y2)
+		if(SDL_RenderDrawLine(rn, x1, y1, x2, y2) < 0)
+			return EEL_XDEVICECONTROL;
+	}
+	else if((vm->argc >= 7) && (vm->argc & 1))
+	{
+		// (renderer)<x, y>
+		int i;
+		int n = (vm->argc - 1) >> 1;
+		SDL_Point *points = (SDL_Point *)eel_scratch(vm,
+				sizeof(SDL_Point) * n);
+		if(!points)
+			return EEL_XMEMORY;
+		for(i = 0; i < n; ++i)
+		{
+			ESDL_ARG_INTEGER((i << 1) + 1, points[i].x)
+			ESDL_ARG_INTEGER((i << 1) + 2, points[i].y)
+		}
+		if(SDL_RenderDrawLines(rn, points, n) < 0)
+			return EEL_XDEVICECONTROL;
+	}
+	else if(vm->argc == 2)
+	{
+		// (renderer, indexable of <x, y>  tuples)
+		// TODO: Optimizations for vector_s32 and maybe others
+		EEL_value *args = vm->heap + vm->argv;
+		int i;
+		EEL_value iv;
+		EEL_object *a;
+		SDL_Point *points;
+		int n;
+		if(!EEL_IS_OBJREF(args[1].type))
+			return EEL_XCANTINDEX;
+		a = args[1].objref.v;
+		n = eel_length(a);
+		if(n & 1)
+			return EEL_XNEEDEVEN;
+		n >>= 1;
+		points = (SDL_Point *)eel_scratch(vm, sizeof(SDL_Point) * n);
+		if(!points)
+			return EEL_XMEMORY;
+		eel_l2v(&iv, 0);
+		for(i = 0; i < n; ++i)
+		{
+			EEL_value v;
+			EEL_xno x;
+			iv.integer.v = i << 1;
+			if((x = eel_o_metamethod(a, EEL_MM_GETINDEX, &iv, &v)))
+				return x;
+			points[i].x = eel_v2l(&v);
+			eel_v_disown(&v);
+			++iv.integer.v;
+			if((x = eel_o_metamethod(a, EEL_MM_GETINDEX, &iv, &v)))
+				return x;
+			points[i].y = eel_v2l(&v);
+			eel_v_disown(&v);
+		}
+		if(SDL_RenderDrawLines(rn, points, n) < 0)
+			return EEL_XDEVICECONTROL;
+	}
+	else
+		return EEL_XARGUMENTS;
 	return 0;
 }
 
@@ -1236,6 +1384,20 @@ static EEL_xno esdl_RenderFillRect(EEL_vm *vm)
 			return EEL_XDEVICECONTROL;
 		return 0;
 	}
+	else if(vm->argc == 5)
+	{
+		SDL_Rect r;
+		ESDL_ARG_INTEGER(1, r.x)
+		ESDL_ARG_INTEGER(2, r.y)
+		ESDL_ARG_INTEGER(3, r.w)
+		ESDL_ARG_INTEGER(4, r.h)
+		if(SDL_RenderFillRect(rn, &r) < 0)
+			return EEL_XDEVICECONTROL;
+		return 0;
+	}
+	else if(vm->argc != 2)
+		return EEL_XARGUMENTS;
+
 	if(EEL_TYPE(args + 1) == esdl_md.rect_cid)
 	{
 		if(SDL_RenderFillRect(rn, o2SDL_Rect(args[1].objref.v)) < 0)
@@ -1250,17 +1412,14 @@ static EEL_xno esdl_RenderFillRect(EEL_vm *vm)
 		len = eel_length(a);
 		if(len < 0)
 			return EEL_XCANTINDEX;
-		ra = eel_malloc(vm, len * sizeof(SDL_Rect));
+		ra = eel_scratch(vm, len * sizeof(SDL_Rect));
 		if(!ra)
 			return EEL_XMEMORY;
 		for(i = 0; i < len; ++i)
 		{
 			EEL_xno x = eel_getlindex(a, i, &v);
 			if(x)
-			{
-				eel_free(vm, ra);
 				return x;
-			}
 			if(EEL_TYPE(&v) != esdl_md.rect_cid)
 			{
 				eel_v_disown(&v);
@@ -1270,7 +1429,6 @@ static EEL_xno esdl_RenderFillRect(EEL_vm *vm)
 			eel_disown(v.objref.v);
 		}
 		SDL_RenderFillRects(rn, ra, len);
-		eel_free(vm, ra);
 	}
 	else
 		return EEL_XWRONGTYPE;
@@ -1382,17 +1540,14 @@ static EEL_xno esdl_UpdateWindowSurface(EEL_vm *vm)
 		len = eel_length(a);
 		if(len < 0)
 			return EEL_XCANTINDEX;
-		ra = eel_malloc(vm, len * sizeof(SDL_Rect));
+		ra = eel_scratch(vm, len * sizeof(SDL_Rect));
 		if(!ra)
 			return EEL_XMEMORY;
 		for(i = 0; i < len; ++i)
 		{
 			x = eel_getlindex(a, i, &v);
 			if(x)
-			{
-				eel_free(vm, ra);
 				return x;
-			}
 			if(EEL_TYPE(&v) != esdl_md.rect_cid)
 			{
 				eel_v_disown(&v);
@@ -1402,7 +1557,6 @@ static EEL_xno esdl_UpdateWindowSurface(EEL_vm *vm)
 			eel_disown(v.objref.v);
 		}
 		SDL_UpdateWindowSurfaceRects(win, ra, len);
-		eel_free(vm, ra);
 	}
 	else
 		return EEL_XWRONGTYPE;
@@ -1453,17 +1607,14 @@ static EEL_xno esdl_FillRect(EEL_vm *vm)
 		len = eel_length(a);
 		if(len < 0)
 			return EEL_XCANTINDEX;
-		ra = eel_malloc(vm, len * sizeof(SDL_Rect));
+		ra = eel_scratch(vm, len * sizeof(SDL_Rect));
 		if(!ra)
 			return EEL_XMEMORY;
 		for(i = 0; i < len; ++i)
 		{
 			EEL_xno x = eel_getlindex(a, i, &v);
 			if(x)
-			{
-				eel_free(vm, ra);
 				return x;
-			}
 			if(EEL_TYPE(&v) != esdl_md.rect_cid)
 			{
 				eel_v_disown(&v);
@@ -1473,7 +1624,6 @@ static EEL_xno esdl_FillRect(EEL_vm *vm)
 			eel_disown(v.objref.v);
 		}
 		i = SDL_FillRects(to, ra, len, color);
-		eel_free(vm, ra);
 		if(i < 0)
 			return EEL_XDEVICEWRITE;
 	}
@@ -1574,13 +1724,12 @@ static EEL_xno esdl_SetColors(EEL_vm *vm)
 		rd = eel_rawdata(o);
 		if(!rd)
 			return EEL_XCANTREAD;
-		c = (SDL_Color *)eel_malloc(vm, sizeof(SDL_Color) * len);
+		c = (SDL_Color *)eel_scratch(vm, sizeof(SDL_Color) * len);
 		if(!c)
 			return EEL_XMEMORY;
 		for(i = 0; i < len; ++i)
 			esdl_raw2color(rd[i], c + i);
 		eel_b2v(res, SDL_SetPaletteColors(p, c, first, len));
-		eel_free(vm, c);
 		return 0;
 	  }
 	  default:
@@ -2870,15 +3019,19 @@ EEL_xno eel_sdl_init(EEL_vm *vm)
 			esdl_SetWindowGrab);
 
 	/* Rendering */
+	eel_export_cfunction(m, 0, "SetRenderTarget", 1, 1, 0,
+			esdl_SetRenderTarget);
 	eel_export_cfunction(m, 0, "SetRenderDrawColor", 2, 3, 0,
 			esdl_SetRenderDrawColor);
 	eel_export_cfunction(m, 0, "SetRenderDrawBlendMode", 2, 0, 0,
 			esdl_SetRenderDrawBlendMode);
-	eel_export_cfunction(m, 0, "RenderDrawLine", 5, 0, 0,
+	eel_export_cfunction(m, 0, "RenderDrawPoint", 2, 0, 1,
+			esdl_RenderDrawPoint);
+	eel_export_cfunction(m, 0, "RenderDrawLine", 2, 0, 1,
 			esdl_RenderDrawLine);
 	eel_export_cfunction(m, 0, "RenderClear", 1, 0, 0,
 			esdl_RenderClear);
-	eel_export_cfunction(m, 0, "RenderFillRect", 1, 1, 0,
+	eel_export_cfunction(m, 0, "RenderFillRect", 1, 4, 0,
 			esdl_RenderFillRect);
 	eel_export_cfunction(m, 0, "RenderCopy", 2, 5, 0,
 			esdl_RenderCopy);
