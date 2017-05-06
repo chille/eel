@@ -9,7 +9,7 @@ import SDL as SDL;
 import NET2 as NET2;
 import io;
 
-function Pen(renderer)
+function Pen(renderer, color)
 {
 	return {
 		// Private stuff
@@ -19,7 +19,7 @@ function Pen(renderer)
 		.renderer	renderer,
 
 		// Interface
-		.color		0,		// Pen color
+		.color		color,		// Pen color
 
 		// Pen down
 		procedure Down(self)
@@ -75,11 +75,8 @@ export function main<args>
 			640, 480];
 	local renderer = SDL.Renderer [window];
 
-	local localpen = Pen(renderer);
-	localpen.color = 0xffff00;
-
-	local remotepen = Pen(renderer);
-	remotepen.color = 0x00ffff;
+	local localpen = Pen(renderer, 0xffff00);
+	local remotepen = Pen(renderer, 0x00ffff);
 
 	local buf = memfile [];
 

@@ -12,8 +12,9 @@
 // that is then copied to the window. There
 // are render targets (which we rely on here),
 // but they're not always supported. There are
-// surfaces, but there's no straight, efficient
-// way to render them to a window.
+// surfaces, but there's no straightforward,
+// efficient way of rendering them to a window.
+//
 ///////////////////////////////////////////////
 
 eelversion 0.3.7;
