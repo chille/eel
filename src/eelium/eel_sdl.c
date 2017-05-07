@@ -357,6 +357,38 @@ static EEL_xno tx_construct(EEL_vm *vm, EEL_types type,
 		texture = SDL_CreateTexture(renderer, format, access, w, h);
 		break;
 	  }
+	  case 3:	/* renderer, surface, srcrect */
+	  {
+		Uint32 pf;
+		SDL_Surface *s;
+		SDL_Rect *r;
+		if(EEL_TYPE(initv + 1) != esdl_md.surface_cid)
+			return EEL_XWRONGTYPE;
+		s = o2ESDL_surface(initv[1].objref.v)->surface;
+		if(EEL_TYPE(initv + 2) != esdl_md.rect_cid)
+			return EEL_XWRONGTYPE;
+		r = o2SDL_Rect(initv[2].objref.v);
+		if((r->x < 0) || (r->y < 0))
+			return EEL_XLOWVALUE;
+		if((r->x + r->w >= s->w) || (r->y + r->h >= s->h))
+			return EEL_XHIGHVALUE;
+		pf = SDL_MasksToPixelFormatEnum(s->format->BitsPerPixel,
+				s->format->Rmask, s->format->Gmask,
+				s->format->Bmask, s->format->Amask);
+		texture = SDL_CreateTexture(renderer, pf,
+				SDL_TEXTUREACCESS_STATIC, r->w, r->h);
+		if(!texture)
+			return EEL_XDEVICEERROR;
+		if(SDL_UpdateTexture(texture, NULL, (Uint8 *)s->pixels +
+				s->format->BytesPerPixel * r->x +
+				s->pitch * r->y,
+				s->pitch) < 0)
+		{
+			SDL_DestroyTexture(texture);
+			return EEL_XDEVICEWRITE;
+		}
+		break;
+	  }
 	  case 2:	/* renderer, surface */
 		if(EEL_TYPE(initv + 1) != esdl_md.surface_cid)
 			return EEL_XWRONGTYPE;
@@ -370,7 +402,10 @@ static EEL_xno tx_construct(EEL_vm *vm, EEL_types type,
 		return EEL_XDEVICEERROR;
 	eo = eel_o_alloc(vm, sizeof(ESDL_texture), type);
 	if(!eo)
+	{
+		SDL_DestroyTexture(texture);
 		return EEL_XMEMORY;
+	}
 	tx = o2ESDL_texture(eo);
 	tx->texture = texture;
 	eel_o2v(result, eo);
@@ -419,9 +454,33 @@ static EEL_xno tx_getindex(EEL_object *eo, EEL_value *op1, EEL_value *op2)
 		if(SDL_QueryTexture(tx, NULL, &op2->integer.v, NULL, NULL) < 0)
 			return EEL_XDEVICEREAD;
 	}
+	else if(!strcmp(is, "blendmode"))
+	{
+		SDL_BlendMode bm;
+		if(SDL_GetTextureBlendMode(tx, &bm) < 0)
+			return EEL_XDEVICEREAD;
+		op2->integer.v = bm;
+	}
 	else
 		return EEL_XWRONGINDEX;
 	op2->type = EEL_TINTEGER;
+	return 0;
+}
+
+
+static EEL_xno tx_setindex(EEL_object *eo, EEL_value *op1, EEL_value *op2)
+{
+	SDL_Texture *tx = o2ESDL_texture(eo)->texture;
+	const char *is = eel_v2s(op1);
+	if(!is)
+		return EEL_XWRONGTYPE;
+	if(!strcmp(is, "blendmode"))
+	{
+		if(SDL_SetTextureBlendMode(tx, eel_v2l(op2)) < 0)
+			return EEL_XDEVICEWRITE;
+	}
+	else
+		return EEL_XWRONGINDEX;
 	return 0;
 }
 
@@ -545,7 +604,7 @@ static EEL_xno s_destruct(EEL_object *eo)
 
 static EEL_xno s_getindex(EEL_object *eo, EEL_value *op1, EEL_value *op2)
 {
-	ESDL_surface *s = o2ESDL_surface(eo);
+	SDL_Surface *s = o2ESDL_surface(eo)->surface;
 	const char *is = eel_v2s(op1);
 	if(!is)
 		return EEL_XWRONGTYPE;
@@ -553,50 +612,81 @@ static EEL_xno s_getindex(EEL_object *eo, EEL_value *op1, EEL_value *op2)
 		switch(is[0])
 		{
 		  case 'w':
-			op2->integer.v = s->surface->w;
+			op2->integer.v = s->w;
 			break;
 		  case 'h':
-			op2->integer.v = s->surface->h;
+			op2->integer.v = s->h;
 			break;
 		  default:
 			return EEL_XWRONGINDEX;
 		}
 	else if(!strcmp(is, "flags"))
-		op2->integer.v = s->surface->flags;
+		op2->integer.v = s->flags;
 	else if(!strcmp(is, "alpha"))
 	{
 		Uint8 am;
-		SDL_GetSurfaceAlphaMod(s->surface, &am);
+		SDL_GetSurfaceAlphaMod(s, &am);
 		op2->integer.v = am;
 	}
 	else if(!strcmp(is, "colorkey"))
 	{
 		Uint32 ck;
-		if(SDL_GetColorKey(s->surface, &ck))
+		if(SDL_GetColorKey(s, &ck))
 			return EEL_XWRONGINDEX;
 		op2->integer.v = ck;
 	}
+	else if(!strcmp(is, "blendmode"))
+	{
+		SDL_BlendMode bm;
+		if(SDL_GetSurfaceBlendMode(s, &bm))
+			return EEL_XWRONGINDEX;
+		op2->integer.v = bm;
+	}
 	else if(!strcmp(is, "palette"))
 	{
-		op2->integer.v = s->surface->format->palette ? 1 : 0;
+		op2->integer.v = s->format->palette ? 1 : 0;
 		op2->type = EEL_TBOOLEAN;
 		return 0;
 	}
 	else if(!strcmp(is, "BitsPerPixel"))
-		op2->integer.v = s->surface->format->BitsPerPixel;
+		op2->integer.v = s->format->BitsPerPixel;
 	else if(!strcmp(is, "BytesPerPixel"))
-		op2->integer.v = s->surface->format->BytesPerPixel;
+		op2->integer.v = s->format->BytesPerPixel;
 	else if(!strcmp(is, "Rmask"))
-		op2->integer.v = s->surface->format->Rmask;
+		op2->integer.v = s->format->Rmask;
 	else if(!strcmp(is, "Gmask"))
-		op2->integer.v = s->surface->format->Gmask;
+		op2->integer.v = s->format->Gmask;
 	else if(!strcmp(is, "Bmask"))
-		op2->integer.v = s->surface->format->Bmask;
+		op2->integer.v = s->format->Bmask;
 	else if(!strcmp(is, "Amask"))
-		op2->integer.v = s->surface->format->Amask;
+		op2->integer.v = s->format->Amask;
+	else if(!strcmp(is, "PixelFormat"))
+		op2->integer.v = SDL_MasksToPixelFormatEnum(
+				s->format->BitsPerPixel,
+				s->format->Rmask,
+				s->format->Gmask,
+				s->format->Bmask,
+				s->format->Amask);
 	else
 		return EEL_XWRONGINDEX;
 	op2->type = EEL_TINTEGER;
+	return 0;
+}
+
+
+static EEL_xno s_setindex(EEL_object *eo, EEL_value *op1, EEL_value *op2)
+{
+	SDL_Surface *s = o2ESDL_surface(eo)->surface;
+	const char *is = eel_v2s(op1);
+	if(!is)
+		return EEL_XWRONGTYPE;
+	if(!strcmp(is, "blendmode"))
+	{
+		if(SDL_SetSurfaceBlendMode(s, eel_v2l(op2)) < 0)
+			return EEL_XDEVICEWRITE;
+	}
+	else
+		return EEL_XWRONGINDEX;
 	return 0;
 }
 
@@ -2995,11 +3085,13 @@ EEL_xno eel_sdl_init(EEL_vm *vm)
 	c = eel_export_class(m, "Texture", EEL_COBJECT,
 			tx_construct, tx_destruct, NULL);
 	eel_set_metamethod(c, EEL_MM_GETINDEX, tx_getindex);
+	eel_set_metamethod(c, EEL_MM_SETINDEX, tx_setindex);
 	esdl_md.texture_cid = eel_class_typeid(c);
 
 	c = eel_export_class(m, "Surface", EEL_COBJECT,
 			s_construct, s_destruct, NULL);
 	eel_set_metamethod(c, EEL_MM_GETINDEX, s_getindex);
+	eel_set_metamethod(c, EEL_MM_SETINDEX, s_setindex);
 	esdl_md.surface_cid = eel_class_typeid(c);
 
 	c = eel_export_class(m, "SurfaceLock", esdl_md.surface_cid,
