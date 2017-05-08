@@ -118,6 +118,14 @@ export function main<args>
 			SDL.WINDOWPOS_CENTERED, SDL.WINDOWPOS_CENTERED,
 			640, 480];
 	local renderer = SDL.Renderer [window];
+
+	if not SDL.RenderTargetSupported(renderer)
+	{
+		print("Render targets not supported!\n");
+		print("This example will not work without them.\n");
+		return 1;
+	}
+
 	local canvas = SDL.Texture [renderer, SDL.PIXELFORMAT_RGB888,
 			SDL.TEXTUREACCESS_TARGET, renderer.(w, h)];
 	SDL.ShowCursor(false);

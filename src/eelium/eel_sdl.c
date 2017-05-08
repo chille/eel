@@ -1258,6 +1258,15 @@ static EEL_xno esdl_SetRenderTarget(EEL_vm *vm)
 }
 
 
+static EEL_xno esdl_RenderTargetSupported(EEL_vm *vm)
+{
+	SDL_Renderer *rn;
+	ESDL_ARG_RENDERER(0, rn)
+	eel_b2v(vm->heap + vm->resv, SDL_RenderTargetSupported(rn));
+	return 0;
+}
+
+
 static EEL_xno esdl_SetRenderDrawColor(EEL_vm *vm)
 {
 	SDL_Renderer *rn;
@@ -3111,6 +3120,8 @@ EEL_xno eel_sdl_init(EEL_vm *vm)
 			esdl_SetWindowGrab);
 
 	/* Rendering */
+	eel_export_cfunction(m, 1, "RenderTargetSupported", 1, 0, 0,
+			esdl_RenderTargetSupported);
 	eel_export_cfunction(m, 0, "SetRenderTarget", 1, 1, 0,
 			esdl_SetRenderTarget);
 	eel_export_cfunction(m, 0, "SetRenderDrawColor", 2, 3, 0,
