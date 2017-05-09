@@ -30,7 +30,6 @@ function CanvasPen(canvas, color)
 {
 	local o = {
 		// Private stuff
-		.canvas		canvas,
 		.x		0,
 		.y		0,
 		.drawing	false,
@@ -74,6 +73,7 @@ function CanvasPen(canvas, color)
 			SDL.RenderFillRect(r, Rect [(x, y) + 2, 4, 4]);
 		}
 	};
+	o.canvas (=) canvas;
 	canvas.pens.+ o;
 	return o;
 }
