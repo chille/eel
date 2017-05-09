@@ -370,7 +370,7 @@ static EEL_xno tx_construct(EEL_vm *vm, EEL_types type,
 		r = o2SDL_Rect(initv[2].objref.v);
 		if((r->x < 0) || (r->y < 0))
 			return EEL_XLOWVALUE;
-		if((r->x + r->w >= s->w) || (r->y + r->h >= s->h))
+		if((r->x + r->w > s->w) || (r->y + r->h > s->h))
 			return EEL_XHIGHVALUE;
 		pf = SDL_MasksToPixelFormatEnum(s->format->BitsPerPixel,
 				s->format->Rmask, s->format->Gmask,
@@ -1543,9 +1543,27 @@ static EEL_xno esdl_RenderCopy(EEL_vm *vm)
 	ESDL_ARG_RENDERER(0, rn)
 	ESDL_ARG_TEXTURE(1, tx)
 	ESDL_OPTARGNIL_RECT(2, srcr, NULL)
-	ESDL_OPTARGNIL_RECT(3, dstr, NULL)
-	if(vm->argc <= 4)
+	if(vm->argc == 5)
 	{
+		SDL_Rect dr;
+		if(srcr)
+		{
+			dr.w = srcr->w;
+			dr.h = srcr->h;
+		}
+		else
+		{
+			if(SDL_QueryTexture(tx, NULL, NULL, &dr.w, &dr.h) < 0)
+				return EEL_XDEVICEREAD;
+		}
+		ESDL_ARG_INTEGER(3, dr.x)
+		ESDL_ARG_INTEGER(4, dr.y)
+		if(SDL_RenderCopy(rn, tx, srcr, &dr) < 0)
+			return EEL_XDEVICECONTROL;
+	}
+	else if(vm->argc <= 4)
+	{
+		ESDL_OPTARGNIL_RECT(3, dstr, NULL)
 		if(SDL_RenderCopy(rn, tx, srcr, dstr) < 0)
 			return EEL_XDEVICECONTROL;
 	}
@@ -1555,6 +1573,7 @@ static EEL_xno esdl_RenderCopy(EEL_vm *vm)
 		SDL_Point p;
 		SDL_Point *pp;
 		int flip;
+		ESDL_OPTARGNIL_RECT(3, dstr, NULL)
 		ESDL_OPTARG_REAL(4, a, 0.0f)
 		ESDL_OPTARGNIL_INTEGER(5, p.x, 999999)
 		ESDL_OPTARGNIL_INTEGER(6, p.y, 999999)
