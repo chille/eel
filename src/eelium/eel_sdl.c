@@ -1537,13 +1537,15 @@ static EEL_xno esdl_RenderFillRect(EEL_vm *vm)
 
 static EEL_xno esdl_RenderCopy(EEL_vm *vm)
 {
+	EEL_value *args = vm->heap + vm->argv;
 	SDL_Renderer *rn;
 	SDL_Texture *tx;
 	SDL_Rect *srcr, *dstr;
 	ESDL_ARG_RENDERER(0, rn)
 	ESDL_ARG_TEXTURE(1, tx)
 	ESDL_OPTARGNIL_RECT(2, srcr, NULL)
-	if(vm->argc == 5)
+	if((vm->argc == 5) && (EEL_TYPE(args + 3) == EEL_TINTEGER ||
+			EEL_TYPE(args + 3) == EEL_TREAL))
 	{
 		SDL_Rect dr;
 		if(srcr)
