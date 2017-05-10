@@ -68,7 +68,7 @@ include_directories(${PNG_INCLUDE_DIR})
 
 find_package(ALSA)
 if(ALSA_FOUND)
-	add_definitions(-DA2_HAVE_ALSA)
+	add_definitions(-DHAVE_ALSA)
 endif(ALSA_FOUND)
 
 add_library(libeelium ${sources})
