@@ -1,4 +1,22 @@
 
+SDL2:
+	* zsgl2.eel
+	* zsgl.eel
+
+	EBGUI:
+		* curvetool.eel
+		* guiscroll.eel
+		* guitest.eel
+		* zsdraw.eel
+
+	* Textures need to be invalidated as their renderers are destroyed!
+
+	* Software renderers need to be invalidated when their target surfaces
+	  are destroyed!
+		* Window surfaces are particularly tricky with this, as they're
+		  invalidated if the window is resized or closed.
+
+
 Audiality 2:
 
 	* Port:
