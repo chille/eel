@@ -16,6 +16,9 @@ SDL2:
 		* Window surfaces are particularly tricky with this, as they're
 		  invalidated if the window is resized or closed.
 
+	Audiality:
+		* (streamtest.eel - needs A2 #326)
+
 
 Audiality 2:
 
