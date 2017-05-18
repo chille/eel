@@ -1710,13 +1710,17 @@ static EEL_xno esdl_FillRect(EEL_vm *vm)
 	int color;
 	ESDL_ARG_SURFACE(0, to)
 	ESDL_OPTARG_INTEGER(2, color, 0)
-	if(EEL_TYPE(args + 1) == esdl_md.rect_cid)
+	if((vm->argc < 2) || (EEL_TYPE(args + 1) == EEL_TNIL))
+	{
+		if(SDL_FillRect(to, NULL, color) < 0)
+			return EEL_XDEVICEWRITE;
+	}
+	else if(EEL_TYPE(args + 1) == esdl_md.rect_cid)
 	{
 		SDL_Rect *tor;
 		ESDL_ARG_RECT(1, tor)
 		if(SDL_FillRect(to, tor, color) < 0)
 			return EEL_XDEVICEWRITE;
-		return 0;
 	}
 	else if((EEL_classes)EEL_TYPE(args + 1) == EEL_CARRAY)
 	{
