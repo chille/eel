@@ -1,8 +1,5 @@
 
 SDL2:
-	* zsgl2.eel
-	* zsgl.eel
-
 	EBGUI:
 		* curvetool.eel
 		* guiscroll.eel
