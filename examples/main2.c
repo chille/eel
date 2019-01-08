@@ -20,7 +20,6 @@ typedef struct
 
 
 EEL_object *c;
-int type;
 
 
 static EEL_xno test_construct(EEL_vm *vm, EEL_types type, EEL_value *initv, int initc, EEL_value *result)
@@ -28,7 +27,7 @@ static EEL_xno test_construct(EEL_vm *vm, EEL_types type, EEL_value *initv, int 
 	// This works, but use a global pointer to the classdef object
 //	ClassData *cd = (ClassData*)o2EEL_classdef(c)->classdata;
 
-	// This works, but require that I know the typeid for the class
+	// This works, but is not using eel_get_classdata()
 	EEL_state *es = VMP->state;
 	EEL_classdef *cd1 = o2EEL_classdef(es->classes[type]);
 	ClassData *cd = (ClassData*)cd1->classdata;
@@ -56,10 +55,6 @@ int main(void)
 	eel_set_classdata(c, cd);
 	cd->counter = 123;
 	printf("Ptr classdata: %p\n", cd);
-
-//	type = c->type; // Gives me 9
-	type = eel_class_typeid(c); // Gives me 28, which seems to be correct
-	printf("Type: %i\n", type);
 
 	EEL_object *eelscript = eel_load(vm, "test.eel", 0);
 	eel_callnf(vm, eelscript, "main", "");
