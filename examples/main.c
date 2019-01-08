@@ -1,3 +1,10 @@
+/*
+ * 
+ * Compile and run with:
+ *   export LD_LIBRARY_PATH=/path/to/libeel.so
+ *   gcc main2.c -I ../src/core -I ../src/core/eelc -I ../include/ ../src/core/libeel.so && ./a.out
+*/
+
 #include <stdio.h>
 #include <assert.h>
 #include <EEL.h>
