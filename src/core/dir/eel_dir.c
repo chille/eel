@@ -2,7 +2,7 @@
 ---------------------------------------------------------------------------
 	e_dir.c - EEL Directory Handling
 ---------------------------------------------------------------------------
- * Copyright 2005-2006, 2009-2010 David Olofson
+ * Copyright 2005-2006, 2009-2010, 2019 David Olofson
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from the
@@ -46,12 +46,12 @@ typedef struct
 } EEL_directory_cd;
 
 
-static EEL_xno d_construct(EEL_vm *vm, EEL_types type,
+static EEL_xno d_construct(EEL_vm *vm, EEL_classes cid,
 		EEL_value *initv, int initc, EEL_value *result)
 {
 	const char *dn;
 	EEL_directory *d;
-	EEL_object *eo = eel_o_alloc(vm, sizeof(EEL_directory), type);
+	EEL_object *eo = eel_o_alloc(vm, sizeof(EEL_directory), cid);
 	if(!eo)
 		return EEL_XMEMORY;
 	d = o2EEL_directory(eo);
@@ -88,8 +88,9 @@ static EEL_xno d_destruct(EEL_object *eo)
 
 static EEL_xno d_getindex(EEL_object *eo, EEL_value *op1, EEL_value *op2)
 {
-	EEL_directory_cd *cd = (EEL_directory_cd *)eel_get_classdata(eo);
-	if(!EEL_IS_OBJREF(op1->type))
+	EEL_directory_cd *cd = (EEL_directory_cd *)eel_get_classdata(eo->vm,
+			eo->classid);
+	if(!EEL_IS_OBJREF(op1->classid))
 		return EEL_XWRONGINDEX;
 	if(op1->objref.v == cd->i_read)
 	{
@@ -114,7 +115,7 @@ static EEL_xno d_read(EEL_vm *vm)
 	EEL_directory *d;
 	EEL_object *s;
 	struct dirent *de;
-	if(EEL_TYPE(arg) != md->dir_cid)
+	if(EEL_CLASS(arg) != md->dir_cid)
 		return EEL_XWRONGTYPE;
 	d = o2EEL_directory(arg->objref.v);
 	if(!d->handle)
@@ -141,7 +142,7 @@ static EEL_xno d_close(EEL_vm *vm)
 	D_moduledata *md = (D_moduledata *)eel_get_current_moduledata(vm);
 	EEL_value *arg = vm->heap + vm->argv;
 	EEL_directory *d;
-	if(EEL_TYPE(arg) != md->dir_cid)
+	if(EEL_CLASS(arg) != md->dir_cid)
 		return EEL_XWRONGTYPE;
 	d = o2EEL_directory(arg->objref.v);
 	closedir(d->handle);
@@ -200,7 +201,7 @@ EEL_xno eel_dir_init(EEL_vm *vm)
 	/* Register class 'directory' */
 	c = eel_export_class(m, "directory", -1, d_construct, d_destruct, NULL);
 	eel_set_metamethod(c, EEL_MM_GETINDEX, d_getindex);
-	md->dir_cid = eel_class_typeid(c);
+	md->dir_cid = eel_class_cid(c);
 
 	/* Set up classdata */
 	cd = eel_malloc(vm, sizeof(EEL_directory_cd));
@@ -221,7 +222,7 @@ EEL_xno eel_dir_init(EEL_vm *vm)
 		return EEL_XMODULEINIT;
 	}
 	eel_set_unregister(c, d_unregister);
-	eel_set_classdata(c, cd);
+	eel_set_classdata(vm, md->dir_cid, cd);
 
 	eel_disown(m);
 	return 0;

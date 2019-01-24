@@ -2,7 +2,7 @@
 ---------------------------------------------------------------------------
 	e_function.c - EEL Function Class implementation
 ---------------------------------------------------------------------------
- * Copyright 2004-2005, 2009, 2011-2012, 2014 David Olofson
+ * Copyright 2004-2005, 2009, 2011-2012, 2014, 2019 David Olofson
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from the
@@ -35,11 +35,11 @@
 	Function Class
 ----------------------------------------------------------*/
 
-static EEL_xno f_construct(EEL_vm *vm, EEL_types type,
+static EEL_xno f_construct(EEL_vm *vm, EEL_classes cid,
 		EEL_value *initv, int initc, EEL_value *result)
 {
 	EEL_function *f;
-	EEL_object *eo = eel_o_alloc(vm, sizeof(EEL_function), type);
+	EEL_object *eo = eel_o_alloc(vm, sizeof(EEL_function), cid);
 	if(!eo)
 		return EEL_XMEMORY;
 	f = o2EEL_function(eo);
@@ -74,8 +74,9 @@ static EEL_xno f_destruct(EEL_object *eo)
 
 static EEL_xno f_getindex(EEL_object *eo, EEL_value *op1, EEL_value *op2)
 {
-	EEL_function_cd *cd = (EEL_function_cd *)eel_get_classdata(eo);
-	if(!EEL_IS_OBJREF(op1->type))
+	EEL_function_cd *cd = (EEL_function_cd *)eel_get_classdata(eo->vm,
+			eo->classid);
+	if(!EEL_IS_OBJREF(op1->classid))
 		return EEL_XWRONGINDEX;
 	if(op1->objref.v == cd->i_name)
 	{
@@ -160,7 +161,7 @@ void eel_cfunction_register(EEL_vm *vm)
 		eel_serror(es, "Could not initialize EEL_function classdata!\n");
 	}
 	eel_set_unregister(c, f_unregister);
-	eel_set_classdata(c, cd);
+	eel_set_classdata(vm, EEL_CFUNCTION, cd);
 }
 
 
@@ -180,7 +181,7 @@ int eel_function_compare(EEL_function *f1, EEL_function *f2)
 		return 0;
 	if(f1->common.tupargs != f2->common.tupargs)
 		return 0;
-	if(f1->common.name != f1->common.name)
+	if(f1->common.name != f2->common.name)
 		return 0;
 /*
 FIXME: Do we compare default argument values as well here, or at least verify
@@ -203,12 +204,12 @@ void eel_function_detach(EEL_function *f)
 	for(i = 0; i < f->e.nconstants; ++i)
 	{
 		EEL_object *o;
-		if(!EEL_IS_OBJREF(f->e.constants[i].type))
+		if(!EEL_IS_OBJREF(f->e.constants[i].classid))
 			continue;
 		o = f->e.constants[i].objref.v;
-		if(((EEL_classes)o->type == EEL_CFUNCTION) &&
+		if((o->classid == EEL_CFUNCTION) &&
 				(o2EEL_function(o)->common.module ==
 						f->common.module))
-			f->e.constants[i].type = EEL_TNIL;
+			f->e.constants[i].classid = EEL_CNIL;
 	}
 }

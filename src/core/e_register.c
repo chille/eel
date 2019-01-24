@@ -2,7 +2,7 @@
 ---------------------------------------------------------------------------
 	e_register.c - EEL operator registry
 ---------------------------------------------------------------------------
- * Copyright 2002, 2005-2006, 2009-2012, 2014 David Olofson
+ * Copyright 2002, 2005-2006, 2009-2012, 2014, 2019 David Olofson
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from the
@@ -32,14 +32,14 @@
 #include "e_string.h"
 #include "e_table.h"
 
-void eel_register_essx(EEL_vm *vm, EEL_types t, EEL_symbol *s)
+void eel_register_essx(EEL_vm *vm, EEL_classes cid, EEL_symbol *s)
 {
-	switch((EEL_classes)t)
+	switch(cid)
 	{
-	  case EEL_TREAL:	VMP->state->tokentab[ESSX_REAL] = s; break;
-	  case EEL_TINTEGER:	VMP->state->tokentab[ESSX_INTEGER] = s; break;
-	  case EEL_TBOOLEAN:	VMP->state->tokentab[ESSX_BOOLEAN] = s; break;
-	  case EEL_TTYPEID:	VMP->state->tokentab[ESSX_TYPEID] = s; break;
+	  case EEL_CREAL:	VMP->state->tokentab[ESSX_REAL] = s; break;
+	  case EEL_CINTEGER:	VMP->state->tokentab[ESSX_INTEGER] = s; break;
+	  case EEL_CBOOLEAN:	VMP->state->tokentab[ESSX_BOOLEAN] = s; break;
+	  case EEL_CCLASSID:	VMP->state->tokentab[ESSX_CLASSID] = s; break;
 	  case EEL_CSTRING:	VMP->state->tokentab[ESSX_STRING] = s; break;
 	  case EEL_CFUNCTION:	VMP->state->tokentab[ESSX_FUNCTION] = s; break;
 	  case EEL_CMODULE:	VMP->state->tokentab[ESSX_MODULE] = s; break;
@@ -78,10 +78,10 @@ static inline EEL_object *eel_cid2c(EEL_vm *vm, int cid)
 static inline int eel_c2cid(EEL_object *c)
 {
 	EEL_classdef *cd;
-	if((EEL_classes)c->type != EEL_CCLASS)
+	if(c->classid != EEL_CCLASS)
 		return -1;
 	cd = o2EEL_classdef(c);
-	return cd->typeid;
+	return cd->classid;
 }
 
 
@@ -332,7 +332,7 @@ static EEL_object *eel__register_class(EEL_vm *vm,
 		cd = o2EEL_classdef(es->classes[type]);
 
 		/* Set this and ancestor class */
-		cd->typeid = type;
+		cd->classid = type;
 		cd->ancestor = ancestor;
 
 		/* Register constructor and destructor */
@@ -401,30 +401,47 @@ void eel_set_unregister(EEL_object *classdef, EEL_unregister_cb ur)
 {
 	EEL_vm *vm = classdef->vm;
 	EEL_state *es = VMP->state;
-	if((EEL_classes)classdef->type != EEL_CCLASS)
+	if(classdef->classid != EEL_CCLASS)
 		eel_ierror(es, "Object %s passed to eel_set_unregister() "
 				"is not a classdef!", eel_o_stringrep(classdef));
 	o2EEL_classdef(classdef)->unregister = ur;
 }
 
 
-/* Set classdata field for class 'cid' */
-void eel_set_classdata(EEL_object *classdef, void *classdata)
+void eel_set_classdata(EEL_vm *vm, unsigned cid, void *classdata)
 {
-	EEL_vm *vm = classdef->vm;
+	EEL_classdef *cd;
 	EEL_state *es = VMP->state;
-	if((EEL_classes)classdef->type != EEL_CCLASS)
-		eel_ierror(es, "Object %s passed to eel_set_unregister() "
-				"is not a classdef!", eel_o_stringrep(classdef));
-	o2EEL_classdef(classdef)->classdata = classdata;
+	if(cid >= es->nclasses)
+	{
+		eel_warning(es, "Attempted to set classdata for invalid class ID '%u'!", cid);
+		return;
+	}
+	cd = o2EEL_classdef(es->classes[cid]);
+	if(!cd)
+	{
+		eel_warning(es, "Attempted to set classdata for non-existent class '%u'!", cid);
+		return;
+	}
+	cd->classdata = classdata;
 }
 
 
-void *eel_get_classdata(EEL_object *object)
+void *eel_get_classdata(EEL_vm *vm, unsigned cid)
 {
-	EEL_vm *vm = object->vm;
+	EEL_classdef *cd;
 	EEL_state *es = VMP->state;
-	EEL_classdef *cd = o2EEL_classdef(es->classes[object->type]);
+	if(cid >= es->nclasses)
+	{
+		eel_warning(es, "Attempted to get classdata for invalid class ID '%u'!", cid);
+		return NULL;
+	}
+	cd = o2EEL_classdef(es->classes[cid]);
+	if(!cd)
+	{
+		eel_warning(es, "Attempted to get classdata for non-existent class '%u'!", cid);
+		return NULL;
+	}
 	return cd->classdata;
 }
 
@@ -511,7 +528,7 @@ EEL_object *eel_export_class(EEL_object *module,
 }
 
 
-EEL_types eel_class_typeid(EEL_object *c)
+EEL_classes eel_class_cid(EEL_object *c)
 {
 	return eel_c2cid(c);
 }

@@ -2,7 +2,7 @@
 ---------------------------------------------------------------------------
 	EEL_register.h - EEL extension registry
 ---------------------------------------------------------------------------
- * Copyright 2002-2006, 2009-2010, 2014 David Olofson
+ * Copyright 2002-2006, 2009-2010, 2014, 2019 David Olofson
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from the
@@ -67,11 +67,11 @@ EELAPI(int)eel_register_keyword(EEL_vm *vm, const char *name, int token);
 typedef void(*EEL_unregister_cb)(EEL_object *classdef, void *classdata);
 EELAPI(void)eel_set_unregister(EEL_object *classdef, EEL_unregister_cb ur);
 
-/* Set classdata field for class 'cid' */
-EELAPI(void)eel_set_classdata(EEL_object *c, void *classdata);
+/* Set classdata for class 'cid' */
+EELAPI(void)eel_set_classdata(EEL_vm *vm, unsigned cid, void *classdata);
 
-/* Get classdata from the EEL_classdef of the class of 'object' */
-EELAPI(void *)eel_get_classdata(EEL_object *object);
+/* Get classdata for class 'cid' */
+EELAPI(void *)eel_get_classdata(EEL_vm *vm, unsigned cid);
 
 
 /*----------------------------------------------------------
@@ -122,12 +122,12 @@ EELAPI(EEL_object *)eel_export_class(EEL_object *module,
 		EEL_rector_cb reconstruct);
 
 /*
- * Get the EEL type ID of class 'c'.
+ * Get the EEL class ID of class 'c'.
  *
  * Returns -1 if 'c' is not an EEL_classdef object, or if there's some other
  * problem.
  */
-EELAPI(EEL_types)eel_class_typeid(EEL_object *c);
+EELAPI(EEL_classes)eel_class_cid(EEL_object *c);
 
 /*
  * Set callback for metamethod 'mm' of class 'cid' to 'cb'. 'cid' must refer to
@@ -140,10 +140,10 @@ EELAPI(EEL_xno)eel_set_metamethod(EEL_object *c, EEL_mmindex mm, EEL_mm_cb cb);
 
 /*
  * Register cast method 'cb' for casting type 'from' into type 'to'. 'from' and
- * 'to' most be type or class IDs, or one of the wildcards EEL_TANYTYPE or
- * EEL_TANYINDEXABLE.
- *    Note that EEL_TANYINDEXABLE does *not* match permutations that are
- * already defined.
+ * 'to' most be type or class IDs, or one of the wildcards EEL_CANY or
+ * EEL_CINDEXABLE.
+ *    Note that EEL_CINDEXABLE does *not* match permutations that are already
+ * defined.
  *
  * SUCCESS: Returns 0.
  * FAILURE: Returns an EEL exception number.
