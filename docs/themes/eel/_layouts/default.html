@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="{{ site.lang | default: "en-US" }}">
+	<head>
+		<meta charset="UTF-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<link rel="stylesheet" href="{{ "/assets/css/style.css?v=" | append: site.github.build_revision | relative_url }}">
+		<!--[if lt IE 9]>
+		<script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.min.js"></script>
+		<![endif]-->
+
+		<title>{{ page.title }} - {{ site.title }}</title>
+	</head>
+	<body>
+		<div id="wrapper">
+			<header>
+				Header
+			</header>
+
+			<aside id="sidebar-left">
+				<nav>
+					<ul>
+						{% for item in site.data.menu.docs %}
+							<li class="{% if item.url == page.url %}active{% endif %}">
+								<a href="{{ item.url }}">{{ item.title }}</a>
+								{% if item.children[0] %}
+									<ul>
+										{% for child in item.children %}
+											<li class="{% if child.url == page.url %}active{% endif %}"><a href="{{ child.url }}">{{ child.page }}</a></li>
+										{% endfor %}
+									</ul>
+								{% endif %}
+							</li>
+						{% endfor %}
+					</ul>
+				</nav>
+			</aside>
+
+			<aside id="main">
+				<section>
+					{{ content }}
+				</section>
+			</aside>
+
+			<div class="clearfix"></div>
+
+			<footer>
+				Footer
+			</footer>
+		</div>
+  </body>
+</html>

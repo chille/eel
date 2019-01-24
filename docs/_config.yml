@@ -1,9 +1,2 @@
-#theme: jekyll-theme-minimal
-
-markdown: kramdown
-highlighter: rouge
-kramdown:
-  input: GFM
-  syntax_highlighter: rouge
-  extensions: fenced_code_blocks
-  hard_wrap: false
+theme: eel
+title: EEL

@@ -1,0 +1,22 @@
+docs:
+- title: Home
+  url: /
+
+- title: Todo list
+  url: /todo
+
+- title: Get EEL
+  url: /download
+
+- title: Documentation
+  url: /docs
+  children:
+    - page: Getting started
+      url: /docs/gettingstarted
+    - page: Examples
+      url: /docs/examples
+    - page: Helping
+      url: /docs/helping
+
+- title: About
+  url: /about
