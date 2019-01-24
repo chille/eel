@@ -16,7 +16,7 @@ Including repository files via gist-it
 
 Syntax highlighting in GitHub Pages
 -----------------------------------
-```C++
+```C
 #include <stdio>
 
 int main(void) {
