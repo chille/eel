@@ -22,11 +22,11 @@
 					<ul>
 						{% for item in site.data.menu.docs %}
 							<li class="{% if item.url == page.url %}active{% endif %}">
-								<a href="{{ item.url }}">{{ item.title }}</a>
+								<a href="{{ item.url | relative_url }}">{{ item.title }}</a>
 								{% if item.children[0] %}
 									<ul>
 										{% for child in item.children %}
-											<li class="{% if child.url == page.url %}active{% endif %}"><a href="{{ child.url }}">{{ child.page }}</a></li>
+											<li class="{% if child.url == page.url %}active{% endif %}"><a href="{{ child.url | relative_url }}">{{ child.page }}</a></li>
 										{% endfor %}
 									</ul>
 								{% endif %}
