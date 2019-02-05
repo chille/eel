@@ -8,3 +8,11 @@ set(sources ${sources}
 )
 
 add_library(libeelmoduledir ${sources})
+
+# Until 1.0, we assume there's no ABI compatibility across releases!
+set_target_properties(libeelmoduledir PROPERTIES VERSION ${VERSION_STRING}
+	SOVERSION ${VERSION_STRING})
+
+set_target_properties(libeelmoduledir PROPERTIES OUTPUT_NAME "eelmoduledir")
+
+install(TARGETS libeelmoduledir DESTINATION lib)
