@@ -24,7 +24,6 @@
 #ifdef _WIN32
 #include <windows.h>
 #include <mmsystem.h>
-#include <shellapi.h>
 #else
 #include <sched.h>
 #include <sys/time.h>
@@ -419,73 +418,6 @@ static EEL_xno bi_caller(EEL_vm *vm)
 }
 
 
-static EEL_xno bi_system(EEL_vm *vm)
-{
-	int res;
-	const char *s = eel_v2s(&vm->heap[vm->argv]);
-	if(!s)
-		return EEL_XNEEDSTRING;
-	res = system(s);
-	if(res == -1)
-		return EEL_XFILEERROR;
-	eel_l2v(vm->heap + vm->resv, WEXITSTATUS(res));
-	return 0;
-}
-
-
-static EEL_xno bi_ShellExecute(EEL_vm *vm)
-{
-#ifdef WIN32
-	EEL_value *args = vm->heap + vm->argv;
-	HINSTANCE res;
-	int showcmd = SW_SHOWNORMAL;
-	const char *op = eel_v2s(args);
-	const char *file = eel_v2s(args + 1);
-	const char *params = NULL;
-	const char *dir = NULL;
-	if(!file)
-		return EEL_XNEEDSTRING;
-	if(vm->argc > 2)
-		params = eel_v2s(args + 2);
-	if(vm->argc > 3)
-		dir = eel_v2s(args + 3);
-	if(vm->argc > 4)
-		showcmd = eel_v2l(args + 4);
-	CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
-	res = ShellExecute(NULL, op, file, params, dir, showcmd);
-	CoUninitialize();
-	if((int)res < 32)
-	{
-		switch((int)res)
-		{
-		  case 0:
-		  case SE_ERR_OOM:
-			return EEL_XMEMORY;
-		  case ERROR_FILE_NOT_FOUND:
-		  case ERROR_PATH_NOT_FOUND:
-		  case ERROR_BAD_FORMAT:
-		  case SE_ERR_DLLNOTFOUND:
-			return EEL_XFILEOPEN;
-		  case SE_ERR_ACCESSDENIED:
-		  case SE_ERR_ASSOCINCOMPLETE:
-		  case SE_ERR_DDEFAIL:
-		  case SE_ERR_NOASSOC:
-			return EEL_XFILEERROR;
-		  case SE_ERR_DDEBUSY:
-			return EEL_XFILEOPENED;
-		  case SE_ERR_SHARE:
-			return EEL_XSHARINGVIOLATION;
-		}
-		return EEL_XDEVICEERROR;
-	}
-	eel_l2v(vm->heap + vm->resv, (int)res);
-	return 0;
-#else
-	return EEL_XNOTIMPLEMENTED;
-#endif
-}
-
-
 static EEL_xno bi_insert(EEL_vm *vm)
 {
 	EEL_value *args = vm->heap + vm->argv;
@@ -663,19 +595,6 @@ static char builtin_eel[] =
 
 static const EEL_lconstexp bi_constants[] =
 {
-	/* showcmd argument for ShellExecute() */
-	{ "SW_HIDE",		0	},
-	{ "SW_SHOWNORMAL",	1	},
-	{ "SW_SHOWMINIMIZED",	2	},
-	{ "SW_SHOWMAXIMIZED",	3	},
-	{ "SW_SHOWNOACTIVATE",	4	},
-	{ "SW_SHOW",		5	},
-	{ "SW_MINIMIZE",	6	},
-	{ "SW_SHOWMINNOACTIVE",	7	},
-	{ "SW_SHOWNA",		8	},
-	{ "SW_RESTORE",		9	},
-	{ "SW_SHOWDEFAULT",	10	},
-
 	/* Module loading/sharing and compiler flags */
 	{ "SF_NOCOMPILE",	EEL_SF_NOCOMPILE	},
 	{ "SF_NOINIT",		EEL_SF_NOINIT		},
@@ -728,11 +647,7 @@ EEL_xno eel_builtin_init(EEL_vm *vm)
 	eel_export_cfunction(m, 1, "sleep", 1, 0, 0, bi_sleep);
 	eel_export_cfunction(m, 1, "get_instruction_count", 0, 0, 0, bi_getis);
 	eel_export_cfunction(m, 1, "__caller", 0, 0, 0, bi_caller);
-	eel_export_cfunction(m, 1, "system", 1, 0, 0, bi_system);
 
-	/* Platform specific: Win32 */
-	eel_export_cfunction(m, 1, "ShellExecute", 2, 3, 0, bi_ShellExecute);
-	
 	/* Operations on indexable objects */
 	eel_export_cfunction(m, 0, "insert", 3, 0, 0, bi_insert);
 	eel_export_cfunction(m, 0, "delete", 1, 2, 0, bi_delete);

@@ -45,6 +45,7 @@ TODO:
 #include "EEL_register.h"
 #ifdef _WIN32
 #include <windows.h>
+#include <shellapi.h>
 #endif
 
 
@@ -138,6 +139,73 @@ static EEL_xno s_setenv(EEL_vm *vm)
 }
 
 
+static EEL_xno s_system(EEL_vm *vm)
+{
+	int res;
+	const char *s = eel_v2s(&vm->heap[vm->argv]);
+	if(!s)
+		return EEL_XNEEDSTRING;
+	res = system(s);
+	if(res == -1)
+		return EEL_XFILEERROR;
+	eel_l2v(vm->heap + vm->resv, WEXITSTATUS(res));
+	return 0;
+}
+
+
+static EEL_xno s_ShellExecute(EEL_vm *vm)
+{
+#ifdef WIN32
+	EEL_value *args = vm->heap + vm->argv;
+	HINSTANCE res;
+	int showcmd = SW_SHOWNORMAL;
+	const char *op = eel_v2s(args);
+	const char *file = eel_v2s(args + 1);
+	const char *params = NULL;
+	const char *dir = NULL;
+	if(!file)
+		return EEL_XNEEDSTRING;
+	if(vm->argc > 2)
+		params = eel_v2s(args + 2);
+	if(vm->argc > 3)
+		dir = eel_v2s(args + 3);
+	if(vm->argc > 4)
+		showcmd = eel_v2l(args + 4);
+	CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+	res = ShellExecute(NULL, op, file, params, dir, showcmd);
+	CoUninitialize();
+	if((int)res < 32)
+	{
+		switch((int)res)
+		{
+		  case 0:
+		  case SE_ERR_OOM:
+			return EEL_XMEMORY;
+		  case ERROR_FILE_NOT_FOUND:
+		  case ERROR_PATH_NOT_FOUND:
+		  case ERROR_BAD_FORMAT:
+		  case SE_ERR_DLLNOTFOUND:
+			return EEL_XFILEOPEN;
+		  case SE_ERR_ACCESSDENIED:
+		  case SE_ERR_ASSOCINCOMPLETE:
+		  case SE_ERR_DDEFAIL:
+		  case SE_ERR_NOASSOC:
+			return EEL_XFILEERROR;
+		  case SE_ERR_DDEBUSY:
+			return EEL_XFILEOPENED;
+		  case SE_ERR_SHARE:
+			return EEL_XSHARINGVIOLATION;
+		}
+		return EEL_XDEVICEERROR;
+	}
+	eel_l2v(vm->heap + vm->resv, (int)res);
+	return 0;
+#else
+	return EEL_XNOTIMPLEMENTED;
+#endif
+}
+
+
 static EEL_xno s_unload(EEL_object *m, int closing)
 {
 	if(closing)
@@ -193,6 +261,19 @@ EEL_xno eel_system_init(EEL_vm *vm, int argc, const char *argv[])
 		return EEL_XMODULEINIT;
 	}
 
+	/* showcmd argument for ShellExecute() */
+	eel_export_lconstant(m, "SW_HIDE",            0);
+	eel_export_lconstant(m, "SW_SHOWNORMAL",      1);
+	eel_export_lconstant(m, "SW_SHOWMINIMIZED",   2);
+	eel_export_lconstant(m, "SW_SHOWMAXIMIZED",   3);
+	eel_export_lconstant(m, "SW_SHOWNOACTIVATE",  4);
+	eel_export_lconstant(m, "SW_SHOW",            5);
+	eel_export_lconstant(m, "SW_MINIMIZE",        6);
+	eel_export_lconstant(m, "SW_SHOWMINNOACTIVE", 7);
+	eel_export_lconstant(m, "SW_SHOWNA",          8);
+	eel_export_lconstant(m, "SW_RESTORE",         9);
+	eel_export_lconstant(m, "SW_SHOWDEFAULT",     10);
+
 	eel_export_sconstant(m, "ARCH", EEL_ARCH);
 	eel_export_sconstant(m, "SOEXT", EEL_SOEXT);
 	eel_export_sconstant(m, "EXENAME", exename);
@@ -214,6 +295,10 @@ EEL_xno eel_system_init(EEL_vm *vm, int argc, const char *argv[])
 
 	eel_export_cfunction(m, 1, "getenv", 1, 0, 0, s_getenv);
 	eel_export_cfunction(m, 1, "setenv", 2, 1, 0, s_setenv);
+	eel_export_cfunction(m, 1, "system", 1, 0, 0, s_system);
+
+	/* Platform specific: Win32 */
+	eel_export_cfunction(m, 1, "ShellExecute", 2, 3, 0, s_ShellExecute);
 
 	eel_disown(m);
 	return 0;
