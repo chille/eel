@@ -6,11 +6,6 @@ include_directories(${EEL_SOURCE_DIR})
 include_directories(${EEL_SOURCE_DIR}/include)
 include_directories(${EEL_SOURCE_DIR}/src/core)
 include_directories(${EEL_SOURCE_DIR}/src/core/eelc)
-include_directories(${EEL_SOURCE_DIR}/src/core/dir)
-include_directories(${EEL_SOURCE_DIR}/src/core/dsp)
-include_directories(${EEL_SOURCE_DIR}/src/core/io)
-include_directories(${EEL_SOURCE_DIR}/src/core/math)
-include_directories(${EEL_SOURCE_DIR}/src/core/system)
 
 set(EEL_DIRSEP	/)
 
@@ -84,35 +79,6 @@ set(sources ${sources}
 	eelc/ec_symtab.c
 	eelc/ec_optimizer.c
 )
-
-# dir module
-set(sources ${sources}
-	dir/eel_dir.c
-)
-
-# dsp module
-set(sources ${sources}
-	dsp/eel_dsp.c
-	dsp/kfc.c
-	dsp/kiss_fft.c
-	dsp/kiss_fftr.c
-)
-
-# io module
-set(sources ${sources}
-	io/eel_io.c
-)
-
-# math module
-set(sources ${sources}
-	math/eel_math.c
-)
-
-# system module
-set(sources ${sources}
-	system/eel_system.c
-)
-
 
 add_library(libeel ${sources})
 

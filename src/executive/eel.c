@@ -26,6 +26,11 @@
 
 #include "EEL.h"
 #include "e_function.h"
+#include "eel_system.h"
+#include "eel_io.h"
+#include "eel_dir.h"
+#include "eel_math.h"
+#include "eel_dsp.h"
 
 #ifdef EEL_HAVE_EELIUM
 # include "eelium.h"
@@ -237,6 +242,41 @@ int main(int argc, const char *argv[])
 		eel_perror(NULL, 1);
 		fprintf(stderr, "Could not initialize EEL!\n");
 		return 2;
+	}
+
+	/* Install system module */
+	if(eel_system_init(vm, argc, argv))
+	{
+		fprintf(stderr, "Could not initialize built-in system module!\n");
+		return 10;
+	}
+
+	/* Install io module */
+	if(eel_io_init(vm))
+	{
+		fprintf(stderr, "Could not initialize built-in io module!\n");
+		return 11;
+	}
+ 
+	/* Install math module */
+	if(eel_math_init(vm))
+	{
+		fprintf(stderr, "Could not initialize built-in math module!\n");
+		return 12;
+	}
+
+	/* Install directory module */
+	if(eel_dir_init(vm))
+	{
+		fprintf(stderr, "Could not initialize built-in directory module!\n");
+		return 13;
+	}
+
+	/* Install DSP module */
+	if(eel_dsp_init(vm))
+	{
+		fprintf(stderr, "Could not initialize built-in DSP module!\n");
+		return 14;
 	}
 
 #ifdef EEL_HAVE_EELIUM
