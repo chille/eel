@@ -1,4 +1,3 @@
-include(CheckIncludeFiles)
 include(CheckFunctionExists)
 
 include_directories(${EEL_BINARY_DIR}/include)
