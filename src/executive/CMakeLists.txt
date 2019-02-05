@@ -4,6 +4,12 @@
 #find_package(EELIUM REQUIRED)
 #include_directories(${EELIUM_INCLUDE_DIR})
 
+include_directories(${EEL_SOURCE_DIR}/src/modules/dir)
+include_directories(${EEL_SOURCE_DIR}/src/modules/dsp)
+include_directories(${EEL_SOURCE_DIR}/src/modules/io)
+include_directories(${EEL_SOURCE_DIR}/src/modules/math)
+include_directories(${EEL_SOURCE_DIR}/src/modules/system)
+
 # For local build, not relying on an installed library
 include_directories(${EEL_SOURCE_DIR}/include)
 link_directories(${EEL_BINARY_DIR})
@@ -19,6 +25,11 @@ endif(BUILD_EELIUM)
 
 add_executable(eel WIN32 MACOSX_BUNDLE eel.c)
 target_link_libraries(eel libeel)
+target_link_libraries(eel libeelmoduledir)
+target_link_libraries(eel libeelmoduledsp)
+target_link_libraries(eel libeelmoduleio)
+target_link_libraries(eel libeelmodulemath)
+target_link_libraries(eel libeelmodulesystem)
 
 if(BUILD_EELIUM)
 	target_link_libraries(eel libeelium)

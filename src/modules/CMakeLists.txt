@@ -1,0 +1,5 @@
+add_subdirectory(dir)
+add_subdirectory(dsp)
+add_subdirectory(io)
+add_subdirectory(math)
+add_subdirectory(system)
