@@ -7,10 +7,11 @@ include_directories(${EEL_BINARY_DIR}/include)
 include_directories(${EEL_SOURCE_DIR}/include)
 link_directories(${EEL_BINARY_DIR})
 
-set(EEL_LIBRARY libeel)
+set(EEL_LIBRARY libeelcore)
 
 add_executable(eeltest WIN32 MACOSX_BUNDLE eeltest.c)
 target_link_libraries(eeltest ${EEL_LIBRARY})
+target_link_libraries(eeltest libeelcompiler)
 if(WIN32)
 	target_link_libraries(eeltest -lwinmm -ldxguid)
 	# FIXME: Why do we have to pull all these in manually now...?
