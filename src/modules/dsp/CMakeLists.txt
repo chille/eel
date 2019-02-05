@@ -13,3 +13,11 @@ set(sources ${sources}
 )
 
 add_library(libeelmoduledsp ${sources})
+
+# Until 1.0, we assume there's no ABI compatibility across releases!
+set_target_properties(libeelmoduledsp PROPERTIES VERSION ${VERSION_STRING}
+	SOVERSION ${VERSION_STRING})
+
+set_target_properties(libeelmoduledsp PROPERTIES OUTPUT_NAME "eelmoduledsp")
+
+install(TARGETS libeelmoduledsp DESTINATION lib)
