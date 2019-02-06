@@ -1,0 +1,12 @@
+procedure meep()
+{
+	local temp = TestClass [];
+}
+
+export function main()<args>
+{
+	print("Hello world from EEL!\n");
+	meep();
+	print("End of execution\n");
+	return 0;
+}
