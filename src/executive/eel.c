@@ -28,6 +28,7 @@
 #include "e_function.h"
 #include "eel_system.h"
 #include "eel_io.h"
+#include "eel_loader.h"
 #include "eel_dir.h"
 #include "eel_math.h"
 #include "eel_dsp.h"
@@ -277,6 +278,13 @@ int main(int argc, const char *argv[])
 	{
 		fprintf(stderr, "Could not initialize built-in DSP module!\n");
 		return 14;
+	}
+
+	/* Install loader module */
+	if(eel_loader_init(vm))
+	{
+		fprintf(stderr, "Could not initialize built-in loader module!\n");
+		return 15;
 	}
 
 #ifdef EEL_HAVE_EELIUM
