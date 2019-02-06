@@ -31,8 +31,7 @@ eelversion 0.3.7;
 
 export import "builtin_c";
 
-// For __load_eel_module()
-import system, io;
+
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -80,7 +79,6 @@ export function builtin_version
 //
 
 $.current_module_path = nil;
-
 
 // Compile a string of EEL source code into a module
 export function compile(s)[flags = 0, filename = nil, modname = nil]
@@ -138,122 +136,6 @@ export function compile(s)[flags = 0, filename = nil, modname = nil]
 		}
 	}
 	return m;
-}
-
-
-// Default EEL script module loader
-export function __load_eel_module(fullpath, flags)
-{
-	local f = file [fullpath, "rb"];
-	local buf = read(f, sizeof f);
-	return compile(buf, flags, fullpath);
-}
-
-$.__load_eel_module = __load_eel_module;
-$.__load_binary_module = __load_binary_module;
-
-
-// Default module loader; try paths, extensions etc...
-export function __load_via_path_modules(modname, flags)
-{
-// TODO: There are a bunch of combinations that can be ruled out
-// TODO: right away by looking at the format of 'modname'...
-	function try_load(p, f)
-	{
-		local ldeel = $.__load_eel_module;
-		local ldbin = $.__load_binary_module;
-		try
-			if copy(p, sizeof p - 4) != ".eel"
-				return ldeel(p + ".eel", f);
-		try
-			if copy(p, sizeof p - 4) != ".ess"
-				return ldeel(p + ".ess", f);
-		try
-			return ldeel(p, f);
-		try
-			if copy(p, sizeof p - sizeof SOEXT) != SOEXT
-				return ldbin(p + SOEXT, f);
-		try
-			return ldbin(p, f);
-		return nil;
-	}
-
-	if flags & SF_ALLOWSHARED
-	{
-		// Looking for shared modules? We're going to assume 'modname'
-		// is a "dotted name", and that the module wasn't found by
-		// __get_loaded_module(). So, we have to figure out the file
-		// name of the module and actually load it here.
-		local r = dstring [];
-		for local i = 0, sizeof modname - 1
-			if modname[i] == '.'
-				r.+ '/';
-			else
-				r[sizeof r] = modname[i];
-		modname = (string)r;
-	}
-
-	try
-	{
-		// Try the directory of the currently compiling module, or the
-		// "root" module. (See compile() for details.)
-		local m = try_load($.current_module_path + DIRSEP + modname,
-				flags);
-		if m
-			return m;
-	}
-
-	// Try each path in $.path_modules
-	local modpaths = $.path_modules;
-	for local i = 0, sizeof modpaths - 1
-	{
-		if sizeof modpaths[i]
-			local m = try_load(modpaths[i] + DIRSEP + modname,
-					flags);
-		else
-			m = try_load(modname, flags);
-		if m
-			return m;
-	}
-	throw __exports().XMODULELOAD;
-}
-
-
-export function __load_injected_module(modname, flags)
-{
-	return $.injected_modules[modname](flags);
-}
-
-
-// Default module loaders
-$.module_loaders = [
-	__get_loaded_module,	// Try to grab a loaded shared module
-	__load_injected_module,	// See if it's an injected module
-	__load_via_path_modules	// Try to load from file system
-];
-
-
-// Try to load a module, using the installed module loaders
-export function load(modname)[flags = 0]
-{
-	local x = $.module_loaders;
-	for local i = 0, sizeof x - 1
-	{
-		local load_error = nil;
-		try
-		{
-			local m = x[i](modname, flags);
-			if typeof m == module
-				return m;
-			load_error = "load(): " + x[i].name + "(\"" +
-					(string)modname + "\"" + ", " +
-					(string)flags + ") returned " +
-					(string)m + " instead of a module";
-		}
-		if load_error
-			throw load_error;
-	}
-	throw "load(): Could not load module \"" + (string)modname + "\"";
 }
 
 

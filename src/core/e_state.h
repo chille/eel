@@ -140,6 +140,7 @@ struct EEL_state
 					 * external references.
 					 */
 	EEL_object	*eellib;	/* To keep it around... */
+	EEL_object	*loader;
 	int		module_lock;	/* >0 ==> module GC disabled */
 };
 

@@ -74,6 +74,25 @@ fi
 cd $SOURCEDIR
 echo "-- Done!"
 
+# FIXME: This doesn't belong here...
+echo
+echo "=== Generating builtin-loader.c from builtin-loader.eel ==="
+cd $SOURCEDIR/src/modules/loader
+if [ -e builtin-loader.c ]; then
+	rm builtin-loader.c
+fi
+eel strip builtin-loader.eel -q
+if [ ! -e builtin-loader.c ]; then
+	echo "No EEL or strip tool? Trying sed..."
+	sed -f ../../core/text2c.sed builtin-loader.eel > builtin-loader.c
+fi
+if [ ! -e builtin-loader.c ]; then
+	echo "No sed either!? Hoping builtin-loader-bootstrap.c is up to date..."
+	cp builtin-loader-bootstrap.c builtin-loader.c
+fi
+cd $SOURCEDIR
+echo "-- Done!"
+
 
 echo
 echo "=========================================================="

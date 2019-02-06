@@ -150,9 +150,9 @@ EEL_object *eel_load(EEL_vm *vm, const char *modname, EEL_sflags flags)
 	eel_clear_errors(VMP->state);
 	eel_clear_warnings(VMP->state);
 #endif
-	if(!es->eellib)
+	if(!es->loader)
 		return eel_get_loaded_module(vm, modname); /* Bootstrap! */
-	if(eel_callnf(vm, es->eellib, "load", "Rsi", &res, modname, flags))
+	if(eel_callnf(vm, es->loader, "load", "Rsi", &res, modname, flags))
 		return NULL;
 	if(!EEL_IS_OBJREF(vm->heap[res].classid))
 		return NULL;

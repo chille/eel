@@ -7,6 +7,7 @@
 include_directories(${EEL_SOURCE_DIR}/src/modules/dir)
 include_directories(${EEL_SOURCE_DIR}/src/modules/dsp)
 include_directories(${EEL_SOURCE_DIR}/src/modules/io)
+include_directories(${EEL_SOURCE_DIR}/src/modules/loader)
 include_directories(${EEL_SOURCE_DIR}/src/modules/math)
 include_directories(${EEL_SOURCE_DIR}/src/modules/system)
 
@@ -29,6 +30,7 @@ target_link_libraries(eel libeelcompiler)
 target_link_libraries(eel libeelmoduledir)
 target_link_libraries(eel libeelmoduledsp)
 target_link_libraries(eel libeelmoduleio)
+target_link_libraries(eel libeelmoduleloader)
 target_link_libraries(eel libeelmodulemath)
 target_link_libraries(eel libeelmodulesystem)
 

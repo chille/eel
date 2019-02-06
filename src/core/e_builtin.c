@@ -211,35 +211,6 @@ static EEL_xno bi_print(EEL_vm *vm)
 	return 0;
 }
 
-
-/*
- * NOTE: This looks at the EEL_SF_NOSHARED flag, but all other flags are
- *       ignored! That is, if a module is found, there is no checking whether
- *       or not it was loaded with matching flags.
- */
-static EEL_xno bi__get_loaded_module(EEL_vm *vm)
-{
-	EEL_object *m;
-	EEL_value *args = vm->heap + vm->argv;
-	const char *name = eel_v2s(args + 0);
-	unsigned flags = (unsigned)eel_v2l(args + 1);
-	if(!name)
-		return EEL_XNEEDSTRING;
-	if(!(flags & EEL_SF_ALLOWSHARED))
-		return EEL_XWRONGINDEX;	/* No shared modules, please! */
-	if(!(m = eel_get_loaded_module(vm, name)))
-		return EEL_XWRONGINDEX;
-	eel_o2v(vm->heap + vm->resv, m);
-	return 0;
-}
-
-
-static EEL_xno bi__load_binary_module(EEL_vm *vm)
-{
-	return EEL_XNOTIMPLEMENTED;
-}
-
-
 static EEL_xno bi__compile(EEL_vm *vm)
 {
 	EEL_value *args = vm->heap + vm->argv;
@@ -377,22 +348,6 @@ static EEL_xno bi_getis(EEL_vm *vm)
 #else
 	vm->heap[vm->resv].integer.v = 0;
 #endif
-	return 0;
-}
-
-
-static EEL_xno bi_getmt(EEL_vm *vm)
-{
-	vm->heap[vm->resv].classid = EEL_COBJREF;
-	vm->heap[vm->resv].objref.v = VMP->state->modules;
-	eel_o_own(VMP->state->modules);
-	return 0;
-}
-
-
-static EEL_xno bi_clean_modules(EEL_vm *vm)
-{
-	eel_clean_modules(vm);
 	return 0;
 }
 
@@ -657,15 +612,8 @@ EEL_xno eel_builtin_init(EEL_vm *vm)
 	eel_export_cfunction(m, 1, "tryindex", 2, 1, 0, bi_tryindex);
 
 	/* Run-time EEL module management */
-	eel_export_cfunction(m, 1, "__get_loaded_module", 2, 0, 0,
-			bi__get_loaded_module);
-	eel_export_cfunction(m, 1, "__load_binary_module", 2, 0, 0,
-			bi__load_binary_module);
 	eel_export_cfunction(m, 0, "__compile", 2, 0, 0, bi__compile);
 	eel_export_cfunction(m, 1, "__exports", 0, 1, 0, bi__exports);
-	eel_export_cfunction(m, 1, "__modules", 0, 0, 0, bi_getmt);
-	eel_export_cfunction(m, 0, "__clean_modules", 0, 0, 0,
-			bi_clean_modules);
 
 	/* Utilities for variadics */
 	eel_export_cfunction(m, 1, "vacall", 2, 2, 0, bi_vacall);
