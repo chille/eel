@@ -32,7 +32,7 @@
  *       ignored! That is, if a module is found, there is no checking whether
  *       or not it was loaded with matching flags.
  */
-static EEL_xno bi__get_loaded_module(EEL_vm *vm)
+static EEL_xno loader__get_loaded_module(EEL_vm *vm)
 {
 	EEL_object *m;
 	EEL_value *args = vm->heap + vm->argv;
@@ -49,13 +49,13 @@ static EEL_xno bi__get_loaded_module(EEL_vm *vm)
 }
 
 
-static EEL_xno bi__load_binary_module(EEL_vm *vm)
+static EEL_xno loader__load_binary_module(EEL_vm *vm)
 {
 	return EEL_XNOTIMPLEMENTED;
 }
 
 
-static EEL_xno bi_getmt(EEL_vm *vm)
+static EEL_xno loader_getmt(EEL_vm *vm)
 {
 	vm->heap[vm->resv].classid = EEL_COBJREF;
 	vm->heap[vm->resv].objref.v = VMP->state->modules;
@@ -64,7 +64,7 @@ static EEL_xno bi_getmt(EEL_vm *vm)
 }
 
 
-static EEL_xno bi_clean_modules(EEL_vm *vm)
+static EEL_xno loader_clean_modules(EEL_vm *vm)
 {
 	eel_clean_modules(vm);
 	return 0;
@@ -97,12 +97,12 @@ EEL_xno eel_loader_init(EEL_vm *vm)
 
 	/* Run-time EEL module management */
 	eel_export_cfunction(m, 1, "__get_loaded_module", 2, 0, 0,
-			bi__get_loaded_module);
+			loader__get_loaded_module);
 	eel_export_cfunction(m, 1, "__load_binary_module", 2, 0, 0,
-			bi__load_binary_module);
-	eel_export_cfunction(m, 1, "__modules", 0, 0, 0, bi_getmt);
+			loader__load_binary_module);
+	eel_export_cfunction(m, 1, "__modules", 0, 0, 0, loader_getmt);
 	eel_export_cfunction(m, 0, "__clean_modules", 0, 0, 0,
-			bi_clean_modules);
+			loader_clean_modules);
 
 #ifdef	EEL_USE_EELBIL
 	/* Built-in EEL library */
