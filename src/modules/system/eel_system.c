@@ -274,7 +274,6 @@ EEL_xno eel_system_init(EEL_vm *vm, int argc, const char *argv[])
 	eel_export_lconstant(m, "SW_RESTORE",         9);
 	eel_export_lconstant(m, "SW_SHOWDEFAULT",     10);
 
-	eel_export_sconstant(m, "ARCH", EEL_ARCH);
 	eel_export_sconstant(m, "SOEXT", EEL_SOEXT);
 	eel_export_sconstant(m, "EXENAME", exename);
 	eel_export_sconstant(m, "EXEPATH", exepath);

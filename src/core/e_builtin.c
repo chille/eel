@@ -590,6 +590,7 @@ EEL_xno eel_builtin_init(EEL_vm *vm)
 	gettimeofday(&md->start, NULL);
 #endif
 	/* Version and other info */
+	eel_export_sconstant(m, "ARCH", EEL_ARCH);
 	eel_export_cfunction(m, 1, "__version", 1, 0, 0, bi__version);
 	eel_export_cfunction(m, 1, "exception_name", 1, 0, 0, bi__xname);
 	eel_export_cfunction(m, 1, "exception_description", 1, 0, 0,
