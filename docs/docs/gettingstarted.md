@@ -5,4 +5,11 @@ permalink: /docs/gettingstarted
 Getting started
 ===============
 
-TODO
+{% highlight C %}
+#include <stdio>
+
+int main(void) {
+	printf("Hello world!\n");
+	return 0;
+}
+{% endhighlight %}
