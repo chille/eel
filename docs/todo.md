@@ -16,9 +16,21 @@ Ongoing
 Todo
 ----
  * Import content from docs.old/
- * index.md should link to bundle, jekyll och GitHub Pages
- * Update download.md and import instructions from README.md
- * Make a nice style.css for the theme
+	* CodingStyle
+	* EEL.YAML-tmLanguage
+	* EEL.tmLanguage
+	* eel-dsp.txt
+	* eel-grammar.txt
+	* eel-internals.txt
+	* eel-io.txt
+	* eel-presentation.txt
+	* eel.syntax
+	* eel.xml
+	* eelium.txt
+	* extending-eel.txt
+ * Update [download.md](download) and import instructions from README.md
+ * Improve the layout in style.css
+ * Add a link to GitHub
 
 
 When going live
