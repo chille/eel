@@ -49,6 +49,10 @@ menu:
           url: /docs/modules/eelium
           base: /docs
 
+    - title: Extending EEL
+      url: /docs/extending
+      base: /docs
+
     - title: Examples
       url: /docs/examples
       base: /docs

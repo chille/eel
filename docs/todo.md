@@ -25,7 +25,6 @@ Todo
 	* eel.syntax
 	* eel.xml
 	* eelium.txt
-	* extending-eel.txt
  * Update [download.md](download) and import instructions from README.md
  * Improve the layout in style.css
  * Add a link to GitHub
