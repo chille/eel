@@ -12,7 +12,6 @@ This is a list of things that needs to be done before this site could go live an
 Ongoing
 -------
  * Import content from eelang.org
- * Convert eel-dsp.txt into Markdown
 
 
 Todo
