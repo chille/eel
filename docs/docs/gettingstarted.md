@@ -6,11 +6,10 @@ base: /docs
 Getting started
 ===============
 
-{% highlight C %}
-#include <stdio>
-
-int main(void) {
-	printf("Hello world!\n");
+```eel
+export function main<args>
+{
+	print("Hello, world!\n");
 	return 0;
 }
-{% endhighlight %}
+```

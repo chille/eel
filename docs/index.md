@@ -12,11 +12,10 @@ The syntax is C-like, but the language is higher level than C, and "safe" in the
 
 EEL compiles into byte-code that runs on a virtual machine, which means that no explicit support for specific architectures is needed for portability. The implementation is deliberately very self contained and has few dependencies, so that it can be easily integrated into "strange" environments, such as embedded devices running real time operating systems.
 
-{% highlight C %}
-#include <stdio>
-
-int main(void) {
-	printf("Hello world!\n");
+```eel
+export function main<args>
+{
+	print("Hello, world!\n");
 	return 0;
 }
-{% endhighlight %}
+```
