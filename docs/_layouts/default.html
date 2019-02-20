@@ -20,13 +20,24 @@
 			<aside id="sidebar-left">
 				<nav>
 					<ul>
-						{% for item in site.data.menu.docs %}
+						{% for item in site.data.menu.menu %}
 							<li class="{% if item.url == page.url %}active{% endif %}">
 								<a href="{{ item.url | relative_url }}">{{ item.title }}</a>
 								{% if item.children[0] %}
 									<ul>
 										{% for child in item.children %}
-											<li class="{% if child.url == page.url %}active{% endif %}"><a href="{{ child.url | relative_url }}">{{ child.page }}</a></li>
+											<li class="{% if child.url == page.url %}active{% endif %}">
+												<a href="{{ child.url | relative_url }}">{{ child.title }}</a>
+												{% if child.children[0] %}
+													<ul>
+														{% for child2 in child.children %}
+															<li class="{% if child2.url == page.url %}active{% endif %}">
+																<a href="{{ child2.url | relative_url }}">{{ child2.title }}</a>
+															</li>
+														{% endfor %}
+													</ul>
+												{% endif %}
+											</li>
 										{% endfor %}
 									</ul>
 								{% endif %}

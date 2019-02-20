@@ -1,4 +1,4 @@
-docs:
+menu:
 - title: Home
   url: /
 
@@ -11,13 +11,34 @@ docs:
 - title: Documentation
   url: /docs
   children:
-    - page: Getting started
+    - title: Getting started
       url: /docs/gettingstarted
-    - page: Examples
-      url: /docs/examples
-    - page: Language
+
+    - title: Language
       url: /docs/language
-    - page: Helping
+
+    - title: Modules
+      url: /docs/modules
+      children:
+        - title: Loader
+          url: /docs/modules/loader
+        - title: System
+          url: /docs/modules/system
+        - title: IO
+          url: /docs/modules/io
+        - title: Dir
+          url: /docs/modules/dir
+        - title: Math
+          url: /docs/modules/math
+        - title: DSP
+          url: /docs/modules/dsp
+        - title: Eelium
+          url: /docs/modules/eelium
+
+    - title: Examples
+      url: /docs/examples
+
+    - title: Helping
       url: /docs/helping
 
 - title: About
