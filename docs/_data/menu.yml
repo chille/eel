@@ -57,8 +57,8 @@ menu:
       url: /docs/examples
       base: /docs
 
-    - title: Helping
-      url: /docs/helping
+    - title: Contributing
+      url: /docs/contributing
       base: /docs
 
 - title: About
