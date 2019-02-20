@@ -1,5 +1,6 @@
 ---
 permalink: /docs/gettingstarted
+base: /docs
 ---
 
 Getting started

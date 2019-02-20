@@ -1,6 +1,6 @@
 ---
-title: Examples
 permalink: /docs/examples
+base: /docs
 ---
 
 Examples

@@ -1,3 +1,9 @@
+---
+permalink: /docs/codingstyle
+base: /docs
+---
+
+
 EEL Coding Style
 ================
 

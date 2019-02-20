@@ -17,37 +17,48 @@
 				Header
 			</header>
 
-			<aside id="sidebar-left">
+			<div id="topmenu">
 				<nav>
 					<ul>
 						{% for item in site.data.menu.menu %}
-							<li class="{% if item.url == page.url %}active{% endif %}">
+							<li class="{% if item.base == page.base %}active{% endif %}">
 								<a href="{{ item.url | relative_url }}">{{ item.title }}</a>
-								{% if item.children[0] %}
-									<ul>
-										{% for child in item.children %}
-											<li class="{% if child.url == page.url %}active{% endif %}">
-												<a href="{{ child.url | relative_url }}">{{ child.title }}</a>
-												{% if child.children[0] %}
-													<ul>
-														{% for child2 in child.children %}
-															<li class="{% if child2.url == page.url %}active{% endif %}">
-																<a href="{{ child2.url | relative_url }}">{{ child2.title }}</a>
-															</li>
-														{% endfor %}
-													</ul>
-												{% endif %}
-											</li>
-										{% endfor %}
-									</ul>
-								{% endif %}
 							</li>
 						{% endfor %}
 					</ul>
 				</nav>
-			</aside>
+				<div class="clearfix"></div>
+			</div>
 
-			<aside id="main">
+			{% for item in site.data.menu.menu %}
+				{% if page.base == item.base %}
+					{% if item.children[0] %}
+						{% assign hassidebar = true %}
+						<aside id="sidebar-left">
+							<nav>
+								<ul>
+									{% for child in item.children %}
+										<li class="{% if child.url == page.url %}active{% endif %}">
+											<a href="{{ child.url | relative_url }}">{{ child.title }}</a>
+											{% if child.children[0] %}
+												<ul>
+													{% for child2 in child.children %}
+														<li class="{% if child2.url == page.url %}active{% endif %}">
+															<a href="{{ child2.url | relative_url }}">{{ child2.title }}</a>
+														</li>
+													{% endfor %}
+												</ul>
+											{% endif %}
+										</li>
+									{% endfor %}
+								</ul>
+							</nav>
+						</aside>
+					{% endif %}
+				{% endif %}
+			{% endfor %}
+
+			<aside id="main" class="{%if hassidebar %}with-sidebar{% endif %}">
 				<section>
 					{{ content }}
 				</section>

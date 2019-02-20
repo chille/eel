@@ -1,5 +1,6 @@
 ---
 permalink: /todo
+base: /todo
 ---
 
 Todo

@@ -1,45 +1,62 @@
 menu:
 - title: Home
   url: /
+  base: /
 
 - title: Todo list
   url: /todo
+  base: /todo
 
 - title: Get EEL
   url: /download
+  base: /download
 
 - title: Documentation
   url: /docs
+  base: /docs
   children:
     - title: Getting started
       url: /docs/gettingstarted
+      base: /docs
 
     - title: Language
       url: /docs/language
+      base: /docs
 
     - title: Modules
       url: /docs/modules
+      base: /docs
       children:
         - title: Loader
           url: /docs/modules/loader
+          base: /docs
         - title: System
           url: /docs/modules/system
+          base: /docs
         - title: IO
           url: /docs/modules/io
+          base: /docs
         - title: Dir
           url: /docs/modules/dir
+          base: /docs
         - title: Math
           url: /docs/modules/math
+          base: /docs
         - title: DSP
           url: /docs/modules/dsp
+          base: /docs
         - title: Eelium
           url: /docs/modules/eelium
+          base: /docs
 
     - title: Examples
       url: /docs/examples
+      base: /docs
 
     - title: Helping
       url: /docs/helping
+      base: /docs
 
 - title: About
   url: /about
+  base: /about

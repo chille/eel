@@ -3,6 +3,7 @@ body {
 	color: #fff;
 }
 
+/* Basic styling */
 p, h1, h2, h3, a, td, li, footer {
 	font: 300 21px Lato, 'Helvetica Neue', Helvetica, Arial, sans-serif;
 	text-shadow: 0 1px 3px rgba(0,0,0,0.5);
@@ -34,24 +35,68 @@ p {
 	margin: 15px 0;
 }
 
+pre {
+	overflow: auto;
+}
+
+figure {
+	margin: 0;
+	padding: 5px;
+}
+
+pre {
+	margin: 0;
+}
+
+/* Centering page */
 #wrapper {
 	max-width: 900px;
 	background-color: #444;
 	margin: 0 auto;
 }
 
+/* Header */
 header {
-	border-bottom: 1px solid #888;
+	border-bottom: 1px solid #222;
 	height: 60px; /* TODO: Adjust when logo is included */
 	padding: 10px;
 }
 
+/* Top menu */
+#topmenu {
+	background-color: #333;
+	border-bottom: 1px solid #222;
+}
+
+#topmenu ul, #topmenu li, #topmenu nav {
+	margin: 0;
+	padding: 0;
+}
+
+#topmenu a {
+	float: left;
+	height: 39px;
+	line-height: 39px;
+	width: 20%;
+	text-align: center;
+}
+
+#topmenu a:hover {
+	background-color: #555;
+}
+
+/* Left menu */
 aside#sidebar-left {
 	float: left;
 	width: 25%;
 }
 
+/* Main content */
 aside#main {
+	width: 100%;
+}
+
+aside#main.with-sidebar {
 	float: right;
 	width: 75%;
 }
@@ -60,6 +105,7 @@ aside#main {
 	padding: 20px;
 }
 
+/* Footer */
 footer {
 	border-top: 1px solid #888;
 	margin: 0 auto;
@@ -74,26 +120,17 @@ footer {
 	clear: both;
 }
 
-pre {
-	overflow: auto;
-}
-
-figure {
-	margin: 0;
-	padding: 5px;
-}
-
-pre {
-	margin: 0;
-}
-
-
+/* Link colors */
 a {
 	color: #00f;
 }
 
 a:visited {
 	color: #aaf;
+}
+
+a:hover {
+	color: red !important;
 }
 
 nav {
@@ -103,7 +140,7 @@ nav {
 
 nav ul {
 	padding: 0;
-	padding-left: 15px;
+	padding-left: 20px;
 	margin: 0;
 	list-style: none;
 }

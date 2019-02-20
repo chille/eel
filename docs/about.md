@@ -1,5 +1,6 @@
 ---
 permalink: /about
+base: /about
 ---
 
 About

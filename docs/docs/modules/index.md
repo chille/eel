@@ -1,5 +1,6 @@
 ---
 permalink: /docs/modules
+base: /docs
 ---
 
 The parts of EEL

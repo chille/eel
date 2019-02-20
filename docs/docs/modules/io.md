@@ -1,5 +1,6 @@
 ---
 permalink: /docs/modules/io
+base: /docs
 ---
 
 "io" - The EEL Built-in IO Library

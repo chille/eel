@@ -1,5 +1,6 @@
 ---
 permalink: /docs/helping
+base: /docs
 ---
 
 

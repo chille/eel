@@ -1,3 +1,8 @@
+---
+permalink: /
+base: /
+---
+
 The Extensible Embeddable Language
 ==================================
 

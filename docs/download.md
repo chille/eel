@@ -1,5 +1,6 @@
 ---
 permalink: /download
+base: /download
 ---
 
 Get EEL

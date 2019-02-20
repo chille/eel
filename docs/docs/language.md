@@ -1,5 +1,6 @@
 ---
 permalink: /docs/language
+base: /docs
 ---
 
 The EEL Language
