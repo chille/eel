@@ -18,13 +18,3 @@ int main(void) {
 	return 0;
 }
 {% endhighlight %}
-
-
-Including content via gist's
-----------------------------
-{% gist 5555251 %}
-
-
-Including repository files via gist-it
---------------------------------------
-<script src="https://gist-it.appspot.com/https://github.com/chille/eel/blob/master/docs/docs/examples/test1.c"></script>
