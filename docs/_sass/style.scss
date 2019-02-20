@@ -48,9 +48,18 @@ pre {
 	margin: 0;
 }
 
+ul, ol, li {
+	margin: 0;
+	padding: 0;
+}
+
+ul, ol {
+	padding-inline-start: 1.5em;
+}
+
 /* Centering page */
 #wrapper {
-	max-width: 900px;
+	max-width: 1000px;
 	background-color: #444;
 	margin: 0 auto;
 }
@@ -179,7 +188,11 @@ th {
 }
 
 figure.highlight {
-	border-radius: 3px;
+	border-radius: 4px;
+}
+
+.highlight {
+	font-size: 13px;
 }
 
 .highlight pre {
