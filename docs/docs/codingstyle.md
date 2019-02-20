@@ -1,7 +1,6 @@
+EEL Coding Style
+================
 
-                        .------------------.
-                        | EEL Coding Style |
-                        `------------------´
 
     *************************************************************
     * This document is based on CodingStyle from Audiality, but *

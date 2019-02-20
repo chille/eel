@@ -2,10 +2,14 @@
 permalink: /docs/helping
 ---
 
-Helping
-=======
+
+Contributing to EEL
+===================
 
 EEL is an open source project and we encourage everyone to participate!
+
+Read more about the [EEL coding style](codingstyle)
+
 
 
 Documentation / www.eelang.org

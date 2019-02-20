@@ -17,7 +17,6 @@ Ongoing
 Todo
 ----
  * Import content from docs.old/
-	* CodingStyle
 	* EEL.YAML-tmLanguage
 	* EEL.tmLanguage
 	* eel-grammar.txt
