@@ -11,6 +11,7 @@ This is a list of things that needs to be done before this site could go live an
 Ongoing
 -------
  * Import content from eelang.org
+ * Convert eel-dsp.txt into Markdown
 
 
 Todo
@@ -19,10 +20,8 @@ Todo
 	* CodingStyle
 	* EEL.YAML-tmLanguage
 	* EEL.tmLanguage
-	* eel-dsp.txt
 	* eel-grammar.txt
 	* eel-internals.txt
-	* eel-io.txt
 	* eel-presentation.txt
 	* eel.syntax
 	* eel.xml
