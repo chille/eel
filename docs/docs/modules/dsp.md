@@ -21,7 +21,7 @@ operating on FFT data.
 
 Statistics
 ----------
-```
+```eel
 function sum(v)[first, last, stride];
 function average(v)[first, last, stride];
 ```
@@ -38,7 +38,7 @@ and 1, respectively.
 
 Function renderers
 ------------------
-```
+```eel
 function polynomial(size)<coeffs>;
 procedure add_polynomial(v)<coeffs>;
 ```
@@ -61,7 +61,7 @@ FFT
 ---
 
 ### fft()
-```
+```eel
 function fft(tdata);
 ```
 
@@ -72,7 +72,7 @@ NOT YET IMPLEMENTED!
 
 
 ### ifft()
-```
+```eel
 function ifft(fdata);
 ```
 
@@ -83,7 +83,7 @@ NOT YET IMPLEMENTED!
 
 
 ### fft_real()
-```
+```eel
 function fft_real(tdata);
 ```
 
@@ -105,7 +105,7 @@ imaginary parts of the corresponding bins will always be zero.
 
 
 ### ifft_real()
-```
+```eel
 function ifft_real(fdata);
 ```
 
@@ -126,7 +126,7 @@ is lost.
 
 
 ### fft_cleanup()
-```
+```eel
 function fft_cleanup;
 ```
 Release any internal FFT support data that has been calculated
@@ -136,7 +136,7 @@ ifft_real().
 
 
 ### c_abs()
-```
+```eel
 function c_abs(v, b);
 ```
 
@@ -158,7 +158,7 @@ absolutes of all complex pairs in 'v'.
 
 
 ### c_arg()
-```
+```eel
 function c_arg(v, b);
 ```
 
@@ -181,7 +181,7 @@ arguments of all complex pairs in 'v'.
 
 
 ### c2p()
-```
+```eel
 function c2p(cv);
 ```
 
@@ -191,7 +191,7 @@ complex numbers in 'cv'.
 
 
 ### p2c()
-```
+```eel
 function p2c(pv);
 ```
 
@@ -201,7 +201,7 @@ polar numbers in 'pv'.
 
 
 ### c_set() / c_add()
-```
+```eel
 procedure c_set(v, b, re, im);
 procedure c_add(v, b, re, im);
 ```
@@ -216,7 +216,7 @@ indices are ignored, making no change to 'v'.
 
 
 ### c_set_polar() / c_add_polar()
-```
+```eel
 procedure c_set_polar(v, b, mag, ph);
 procedure c_add_polar(v, b, mag, ph);
 ```
@@ -235,7 +235,7 @@ indices are ignored, making no change to 'v'.
 
 
 ### c_add_i() / c_add_polar_i()
-```
+```eel
 procedure c_add_i(v, b, re, im);
 procedure c_add_polar_i(v, b, mag, ph);
 ```
@@ -245,24 +245,27 @@ procedures implement "phase correct" linear interpolation
 across the two bins closest to the real valued index 'b'.
 They are equivalent to the following EEL procedures:
 
-	procedure add_i(v, b, re, im)
-	{
-		local i = (integer)b;
-		local frac = b - i;
-		if i & 1
-			re, im = -re, -im;
-		dsp.c_add(v, i, re * (1 - frac), im * (1 - frac));
-		dsp.c_add(v, i + 1, -re * frac, -im * frac);
-	}
-	procedure add_polar_i(v, b, mag, ph)
-	{
-		local i = (integer)b;
-		local frac = b - i;
-		if i & 1
-			mag = -mag;
-		c_add_polar(v, i, mag * (1 - frac), ph);
-		c_add_polar(v, i + 1, -mag * frac, ph);
-	}
+```eel
+procedure add_i(v, b, re, im)
+{
+	local i = (integer)b;
+	local frac = b - i;
+	if i & 1
+		re, im = -re, -im;
+	dsp.c_add(v, i, re * (1 - frac), im * (1 - frac));
+	dsp.c_add(v, i + 1, -re * frac, -im * frac);
+}
+
+procedure add_polar_i(v, b, mag, ph)
+{
+	local i = (integer)b;
+	local frac = b - i;
+	if i & 1
+		mag = -mag;
+	c_add_polar(v, i, mag * (1 - frac), ph);
+	c_add_polar(v, i + 1, -mag * frac, ph);
+}
+```
 
 These procedures are primarily intended for "rendering"
 oscillators in the frequency domain in FFT-1 synthesis. The

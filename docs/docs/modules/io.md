@@ -16,12 +16,15 @@ It contains types and functions for basic file/stread I/O.
 
 ### class file
 
-	class file
+```eel
+class file
+```
 
 position:	Current position (R/W)
 
-
-	class memfile
+```eel
+class memfile
+```
 
 position:	Current position (R/W)
 buffer:		Memory buffer (dstring)
@@ -30,9 +33,11 @@ buffer:		Memory buffer (dstring)
 
 ### stdin, stdout, stderr
 
-	function stdin;
-	function stdout;
-	function stderr;
+```eel
+function stdin;
+function stdout;
+function stderr;
+```
 
 Returns the standard input, output and error files
 respectively, if available, otherwise nil.
@@ -41,7 +46,9 @@ respectively, if available, otherwise nil.
 
 ### open()
 
-	function open(path)[mode];
+```eel
+function open(path)[mode];
+```
 
 Opens file "path" in "mode". Arguments are identical to those
 of the C function 'fopen', except that they are EEL strings
@@ -50,7 +57,9 @@ rather than C strings.
 
 
 ### close()
-	procedure close(f);
+```eel
+procedure close(f);
+```
 
 Close file 'f'.
 
@@ -58,9 +67,11 @@ Close file 'f'.
 
 ### read()
 
-	function read(f);
-	function read(f, length);
-	function read(f, type);
+```eel
+function read(f);
+function read(f, length);
+function read(f, type);
+```
 
 Reads from file 'f'. The (f) version reads one byte and
 returns it's value (treating the byte as an unsigned 8 bit
@@ -77,7 +88,9 @@ be a type with (de)serialization medamethods.
 
 
 ### write()
-	function write(f)<data>
+```eel
+function write(f)<data>
+```
 
 Write 'data' (any number of arguments of types that can be
 serialized) to file 'f'. Returns the number of bytes written.
